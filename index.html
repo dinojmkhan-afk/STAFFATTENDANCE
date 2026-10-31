@@ -672,14 +672,14 @@ tr:hover td { background: var(--accent-soft); }
               <table>
                 <thead>
                   <tr>
-                    <th style="width:36px">#</th>
+                    <th style="width:48px">#</th>
                     <th>Name (Malayalam)</th>
                     <th>Name (English)</th>
                     <th>Desig</th>
                     <th>PEN</th>
                     <th>Trade</th>
-                    <th>Shift</th>
-                    <th style="width:110px">Actions</th>
+                    <th style="width:0;padding:0;"></th>
+                    <th style="width:120px">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="staff-table-body">
@@ -1698,51 +1698,152 @@ function moveStaff(id, dir) {
 
 let _dragSrcIdx = null;
 
+// Shift row colours (bg, text) — one per shift slot, cycles if more than 6 shifts
+const SHIFT_ROW_COLORS = [
+  ['#1e3a5f','#93c5fd'], // blue
+  ['#3b1f4f','#c4b5fd'], // purple
+  ['#1a3d2e','#6ee7b7'], // green
+  ['#4a2010','#fdba74'], // orange
+  ['#3d1a2e','#f9a8d4'], // pink
+  ['#1a3340','#67e8f9'], // cyan
+];
+
 function renderStaffTable() {
   const tbody = document.getElementById('staff-table-body');
   if (!db.staff.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--fg-3);padding:20px;">No staff added yet.</td></tr>';
     return;
   }
-  const typeLabel = {regular:'Regular', guest:'Guest', contract:'Contract'};
-  tbody.innerHTML = db.staff.map((s, i) => {
-    const shift = db.shifts.find(sh => sh.id === s.shiftId);
-    const desig = nameDesigLabel(s);
-    const desigCell = desig
-      ? `<span class="badge badge-blue" style="font-family:'IBM Plex Mono',monospace;font-size:10px;">${desig}</span>`
-      : '<span style="color:var(--fg-3)">—</span>';
-    const penCell = s.pen
-      ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fg-2);">${s.pen}</span>`
-      : '<span style="color:var(--fg-3)">—</span>';
-    const tradeCellVal = tradeColumnLabel(s);
-    const tradeCell = tradeCellVal
-      ? `<span class="badge badge-blue">${tradeCellVal}</span>`
-      : '<span style="color:var(--fg-3)">—</span>';
-    return `<tr draggable="true" data-idx="${i}" style="cursor:grab;"
-        ondragstart="staffDragStart(event,${i})"
-        ondragover="staffDragOver(event)"
-        ondragleave="staffDragLeave(event)"
-        ondrop="staffDrop(event,${i})"
-        ondragend="staffDragEnd(event)">
-      <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;">
-        <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${i+1}
-      </td>
-      <td style="font-size:13px;">${s.nameMal}</td>
-      <td style="font-size:12px;color:var(--fg-2);">${s.nameEng || '—'}</td>
-      <td>${desigCell}</td>
-      <td>${penCell}</td>
-      <td>${tradeCell}</td>
-      <td style="font-size:12px;">${shift ? shift.name : '<span style="color:var(--fg-3)">Unassigned</span>'}</td>
-      <td style="white-space:nowrap;">
-        <button class="btn btn-sm btn-secondary" onclick="openStaffModal(${s.id})">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteStaff(${s.id})">✕</button>
-        <input type="number" min="1" max="${db.staff.length}" placeholder="#"
-          title="Type a position number and press Enter to move here"
-          style="width:42px;font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg-2);color:var(--fg-1);text-align:center;"
-          onkeydown="if(event.key==='Enter'){staffMoveTo(${s.id},this.value);this.value='';}" />
+
+  // Build shift order list from db.shifts (preserving user order), then unassigned at end
+  const shiftOrder = db.shifts.map(sh => sh.id);
+  const unassignedStaff = db.staff.filter(s => !shiftOrder.includes(s.shiftId));
+
+  // Assign a colour index to each shift
+  const shiftColorMap = {};
+  db.shifts.forEach((sh, si) => { shiftColorMap[sh.id] = si % SHIFT_ROW_COLORS.length; });
+
+  let html = '';
+  let globalIdx = 0; // position in db.staff (for drag/drop)
+
+  // Rebuild db.staff order: group by shift (in shift order), then unassigned
+  // We render in db.staff order but group visually with headers
+  // To do this properly, we show staff in their actual db.staff order
+  // but insert shift-group headers when the shift changes
+  // First pass: build ordered list grouped by shift matching db.staff sequence
+  const rendered = new Set();
+
+  for (const shift of db.shifts) {
+    const shiftStaff = db.staff
+      .map((s, i) => ({s, i}))
+      .filter(({s}) => s.shiftId === shift.id);
+    if (!shiftStaff.length) continue;
+
+    const ci = shiftColorMap[shift.id];
+    const [bg, fg] = SHIFT_ROW_COLORS[ci];
+    const rowBg = ci % 2 === 0 ? 'rgba(147,197,253,0.06)' : 'rgba(196,181,253,0.06)';
+    // Use lighter tinted row for this shift's staff rows
+    const rowTints = [
+      'rgba(147,197,253,0.07)','rgba(196,181,253,0.07)','rgba(110,231,183,0.07)',
+      'rgba(253,186,116,0.07)','rgba(249,168,212,0.07)','rgba(103,232,249,0.07)'
+    ];
+    const rowTint = rowTints[ci];
+
+    html += `<tr style="background:${bg};cursor:default;" class="shift-header-row">
+      <td colspan="8" style="padding:6px 10px;color:${fg};font-weight:600;font-size:12px;letter-spacing:0.05em;user-select:none;">
+        📋 ${shift.name} &nbsp;·&nbsp; <span style="font-weight:400;opacity:0.8;">${shiftStaff.length} staff</span>
+        &nbsp;&nbsp;<span style="font-size:10px;opacity:0.55;">(drag rows to reorder within or across books)</span>
       </td>
     </tr>`;
-  }).join('');
+
+    for (const {s, i} of shiftStaff) {
+      rendered.add(i);
+      const desig = nameDesigLabel(s);
+      const desigCell = desig
+        ? `<span class="badge badge-blue" style="font-family:'IBM Plex Mono',monospace;font-size:10px;">${desig}</span>`
+        : '<span style="color:var(--fg-3)">—</span>';
+      const penCell = s.pen
+        ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fg-2);">${s.pen}</span>`
+        : '<span style="color:var(--fg-3)">—</span>';
+      const tradeCellVal = tradeColumnLabel(s);
+      const tradeCell = tradeCellVal
+        ? `<span class="badge badge-blue">${tradeCellVal}</span>`
+        : '<span style="color:var(--fg-3)">—</span>';
+      html += `<tr draggable="true" data-staffidx="${i}" style="cursor:grab;background:${rowTint};"
+          ondragstart="staffDragStart(event,${i})"
+          ondragover="staffDragOver(event)"
+          ondragleave="staffDragLeave(event)"
+          ondrop="staffDrop(event,${i})"
+          ondragend="staffDragEnd(event)">
+        <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;padding-left:18px;">
+          <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${i+1}
+        </td>
+        <td style="font-size:13px;">${s.nameMal}</td>
+        <td style="font-size:12px;color:var(--fg-2);">${s.nameEng || '—'}</td>
+        <td>${desigCell}</td>
+        <td>${penCell}</td>
+        <td>${tradeCell}</td>
+        <td style="font-size:12px;"></td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-sm btn-secondary" onclick="openStaffModal(${s.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteStaff(${s.id})">✕</button>
+          <input type="number" min="1" max="${db.staff.length}" placeholder="#"
+            title="Type a position number and press Enter to move here"
+            style="width:42px;font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg-2);color:var(--fg-1);text-align:center;"
+            onkeydown="if(event.key==='Enter'){staffMoveTo(${s.id},this.value);this.value='';}" />
+        </td>
+      </tr>`;
+    }
+  }
+
+  // Unassigned staff
+  const unassigned = db.staff.map((s,i)=>({s,i})).filter(({i}) => !rendered.has(i));
+  if (unassigned.length) {
+    html += `<tr style="background:#2a2a1a;cursor:default;" class="shift-header-row">
+      <td colspan="8" style="padding:6px 10px;color:#fde68a;font-weight:600;font-size:12px;letter-spacing:0.05em;user-select:none;">
+        ⚠️ Unassigned &nbsp;·&nbsp; <span style="font-weight:400;opacity:0.8;">${unassigned.length} staff</span>
+      </td>
+    </tr>`;
+    for (const {s, i} of unassigned) {
+      const desig = nameDesigLabel(s);
+      const desigCell = desig
+        ? `<span class="badge badge-blue" style="font-family:'IBM Plex Mono',monospace;font-size:10px;">${desig}</span>`
+        : '<span style="color:var(--fg-3)">—</span>';
+      const penCell = s.pen
+        ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fg-2);">${s.pen}</span>`
+        : '<span style="color:var(--fg-3)">—</span>';
+      const tradeCellVal = tradeColumnLabel(s);
+      const tradeCell = tradeCellVal
+        ? `<span class="badge badge-blue">${tradeCellVal}</span>`
+        : '<span style="color:var(--fg-3)">—</span>';
+      html += `<tr draggable="true" data-staffidx="${i}" style="cursor:grab;background:rgba(253,230,138,0.04);"
+          ondragstart="staffDragStart(event,${i})"
+          ondragover="staffDragOver(event)"
+          ondragleave="staffDragLeave(event)"
+          ondrop="staffDrop(event,${i})"
+          ondragend="staffDragEnd(event)">
+        <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;padding-left:18px;">
+          <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${i+1}
+        </td>
+        <td style="font-size:13px;">${s.nameMal}</td>
+        <td style="font-size:12px;color:var(--fg-2);">${s.nameEng || '—'}</td>
+        <td>${desigCell}</td>
+        <td>${penCell}</td>
+        <td>${tradeCell}</td>
+        <td style="font-size:12px;color:var(--fg-3);">Unassigned</td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-sm btn-secondary" onclick="openStaffModal(${s.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteStaff(${s.id})">✕</button>
+          <input type="number" min="1" max="${db.staff.length}" placeholder="#"
+            title="Type a position number and press Enter to move here"
+            style="width:42px;font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg-2);color:var(--fg-1);text-align:center;"
+            onkeydown="if(event.key==='Enter'){staffMoveTo(${s.id},this.value);this.value='';}" />
+        </td>
+      </tr>`;
+    }
+  }
+
+  tbody.innerHTML = html;
 }
 
 function staffDragStart(e, idx) {
@@ -1752,6 +1853,7 @@ function staffDragStart(e, idx) {
 }
 function staffDragOver(e) {
   e.preventDefault();
+  if (e.currentTarget.classList.contains('shift-header-row')) return;
   e.dataTransfer.dropEffect = 'move';
   e.currentTarget.style.outline = '2px solid var(--accent-1)';
 }
