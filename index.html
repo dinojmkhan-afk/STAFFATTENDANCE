@@ -1708,6 +1708,21 @@ const SHIFT_ROW_COLORS = [
   ['#1a3340','#67e8f9'], // cyan
 ];
 
+// Designation row tint colours (subtle left border + background)
+// Order matches DESIG_ORDER: PRL, VP, GI(HG), GI, SI, JI, WA, DRSR, SWP, GUEST, other
+const DESIG_ROW_STYLE = {
+  'PRL':    {bg:'rgba(250,204,21,0.10)',  border:'#ca8a04', label:'#fde68a'},
+  'VP':     {bg:'rgba(251,146,60,0.10)',  border:'#ea580c', label:'#fed7aa'},
+  'GI(HG)': {bg:'rgba(248,113,113,0.10)', border:'#dc2626', label:'#fca5a5'},
+  'GI':     {bg:'rgba(244,114,182,0.10)', border:'#db2777', label:'#f9a8d4'},
+  'SI':     {bg:'rgba(167,139,250,0.12)', border:'#7c3aed', label:'#c4b5fd'},
+  'JI':     {bg:'rgba(96,165,250,0.10)',  border:'#2563eb', label:'#93c5fd'},
+  'WA':     {bg:'rgba(52,211,153,0.10)',  border:'#059669', label:'#6ee7b7'},
+  'DRSR':   {bg:'rgba(45,212,191,0.10)',  border:'#0d9488', label:'#99f6e4'},
+  'SWP':    {bg:'rgba(156,163,175,0.10)', border:'#6b7280', label:'#d1d5db'},
+  'GUEST':  {bg:'rgba(253,224,71,0.08)',  border:'#b45309', label:'#fde68a'},
+};
+
 function renderStaffTable() {
   const tbody = document.getElementById('staff-table-body');
   if (!db.staff.length) {
@@ -1741,13 +1756,6 @@ function renderStaffTable() {
 
     const ci = shiftColorMap[shift.id];
     const [bg, fg] = SHIFT_ROW_COLORS[ci];
-    const rowBg = ci % 2 === 0 ? 'rgba(147,197,253,0.06)' : 'rgba(196,181,253,0.06)';
-    // Use lighter tinted row for this shift's staff rows
-    const rowTints = [
-      'rgba(147,197,253,0.07)','rgba(196,181,253,0.07)','rgba(110,231,183,0.07)',
-      'rgba(253,186,116,0.07)','rgba(249,168,212,0.07)','rgba(103,232,249,0.07)'
-    ];
-    const rowTint = rowTints[ci];
 
     html += `<tr style="background:${bg};cursor:default;" class="shift-header-row">
       <td colspan="8" style="padding:6px 10px;color:${fg};font-weight:600;font-size:12px;letter-spacing:0.05em;user-select:none;">
@@ -1758,10 +1766,13 @@ function renderStaffTable() {
 
     for (const [{s, i}, si] of shiftStaff.map((x,si)=>[x,si])) {
       rendered.add(i);
-      const desig = nameDesigLabel(s);
-      const desigCell = desig
+      const desig = nameDesigLabel(s) || (s.staffType === 'guest' ? 'GUEST' : null);
+      const ds = DESIG_ROW_STYLE[desig] || {bg:'rgba(255,255,255,0.03)', border:'transparent', label:'var(--fg-3)'};
+      const desigCell = desig && desig !== 'GUEST'
         ? `<span class="badge badge-blue" style="font-family:'IBM Plex Mono',monospace;font-size:10px;">${desig}</span>`
-        : '<span style="color:var(--fg-3)">—</span>';
+        : desig === 'GUEST'
+          ? `<span class="badge" style="font-family:'IBM Plex Mono',monospace;font-size:10px;background:rgba(253,224,71,0.15);color:#fde68a;">GUEST</span>`
+          : '<span style="color:var(--fg-3)">—</span>';
       const penCell = s.pen
         ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fg-2);">${s.pen}</span>`
         : '<span style="color:var(--fg-3)">—</span>';
@@ -1769,13 +1780,13 @@ function renderStaffTable() {
       const tradeCell = tradeCellVal
         ? `<span class="badge badge-blue">${tradeCellVal}</span>`
         : '<span style="color:var(--fg-3)">—</span>';
-      html += `<tr draggable="true" data-staffidx="${i}" style="cursor:grab;background:${rowTint};"
+      html += `<tr draggable="true" data-staffidx="${i}" style="cursor:grab;background:${ds.bg};border-left:3px solid ${ds.border};"
           ondragstart="staffDragStart(event,${i})"
           ondragover="staffDragOver(event)"
           ondragleave="staffDragLeave(event)"
           ondrop="staffDrop(event,${i})"
           ondragend="staffDragEnd(event)">
-        <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;padding-left:18px;">
+        <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;padding-left:14px;">
           <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${si+1}
         </td>
         <td style="font-size:13px;">${s.nameMal}</td>
@@ -1805,7 +1816,8 @@ function renderStaffTable() {
       </td>
     </tr>`;
     for (const [{s, i}, ui] of unassigned.map((x,ui)=>[x,ui])) {
-      const desig = nameDesigLabel(s);
+      const desig = nameDesigLabel(s) || (s.staffType === 'guest' ? 'GUEST' : null);
+      const ds = DESIG_ROW_STYLE[desig] || {bg:'rgba(255,255,255,0.03)', border:'transparent', label:'var(--fg-3)'};
       const desigCell = desig
         ? `<span class="badge badge-blue" style="font-family:'IBM Plex Mono',monospace;font-size:10px;">${desig}</span>`
         : '<span style="color:var(--fg-3)">—</span>';
@@ -1816,13 +1828,13 @@ function renderStaffTable() {
       const tradeCell = tradeCellVal
         ? `<span class="badge badge-blue">${tradeCellVal}</span>`
         : '<span style="color:var(--fg-3)">—</span>';
-      html += `<tr draggable="true" data-staffidx="${i}" style="cursor:grab;background:rgba(253,230,138,0.04);"
+      html += `<tr draggable="true" data-staffidx="${i}" style="cursor:grab;background:${ds.bg};border-left:3px solid ${ds.border};"
           ondragstart="staffDragStart(event,${i})"
           ondragover="staffDragOver(event)"
           ondragleave="staffDragLeave(event)"
           ondrop="staffDrop(event,${i})"
           ondragend="staffDragEnd(event)">
-        <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;padding-left:18px;">
+        <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;padding-left:14px;">
           <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${ui+1}
         </td>
         <td style="font-size:13px;">${s.nameMal}</td>
