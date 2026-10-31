@@ -11,7 +11,7 @@
      Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
-const FIREBASE_CONFIG = {
+ const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
   authDomain:        "iti-staff-attendance.firebaseapp.com",
   projectId:         "iti-staff-attendance",
@@ -505,7 +505,7 @@ tr:hover td { background: var(--accent-soft); }
 .col-name { width: auto; text-align: left !important; padding-left: 1mm !important; }
 .col-trade { width: 9mm; }
 .col-fn { width: 5mm; font-size: 5.5pt; }
-.col-day { width: 6mm; }
+.col-day { width: 3.6mm; }
 .col-remarks { width: 14mm; }
 
 /* Staff row */
@@ -737,10 +737,6 @@ tr:hover td { background: var(--accent-soft); }
                 </div>
               </div>
               <div id="holiday-grid" style="margin-top:8px;"></div>
-              <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="autoMarkHolidays()">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M9 12l2 2 4-4"/></svg>
-                Auto-mark Sundays &amp; 2nd Saturdays
-              </button>
             </div>
           </div>
         </div>
@@ -772,7 +768,7 @@ tr:hover td { background: var(--accent-soft); }
               <div class="print-options">
                 <div class="print-option-card selected" id="opt-both" onclick="selectPrintOpt('both')">
                   <h4>📄 Left + Right Pages</h4>
-                  <p>Left page: days 1–11 + staff names + trade column. Right page: days 12–end + Remarks only (no repeated name columns), for maximum signature width. Suitable for binding.</p>
+                  <p>Left page: days 1–12 + staff names + trade column. Right page: days 13–end + Remarks only (no repeated name columns), for maximum signature width. Suitable for binding.</p>
                 </div>
                 <div class="print-option-card" id="opt-left" onclick="selectPrintOpt('left')">
                   <h4>← Left Page Only</h4>
@@ -1815,11 +1811,23 @@ function renderHolidayGrid() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const grid = document.getElementById('holiday-grid');
 
+  // Auto-mark Sundays and 2nd Saturdays (only if not already manually set to something else)
+  let satCount = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(year, month, d).getDay();
+    if (dow === 0) {
+      if (!db.holidays[key]) db.holidays[key] = 'SUNDAY';
+    } else if (dow === 6) {
+      satCount++;
+      if (satCount === 2 && !db.holidays[key]) db.holidays[key] = 'SECOND SATURDAY';
+    }
+  }
+
   let html = '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dayOfWeek = new Date(year, month, d).getDay(); // 0=Sun, 6=Sat
-    const val = db.holidays[key] || (dayOfWeek === 0 ? 'SUNDAY' : '');
     const dayName = ['Su','Mo','Tu','We','Th','Fr','Sa'][dayOfWeek];
     const isSun = dayOfWeek === 0;
     const opts = ['', 'SUNDAY', 'HOLIDAY', 'SECOND SATURDAY'];
@@ -1952,8 +1960,8 @@ function buildPrintHtml(month, year, selectedShiftId, showPen = false, rightOffs
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:white;color:black;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:7.5pt;}
-    .print-page{width:210mm;min-height:297mm;padding:7mm 15mm 7mm 5mm;page-break-after:always;background:white;position:relative;}/* left page: 15mm right gutter = binding spine */
-    .print-page.right-page{padding:7mm 7mm 7mm 15mm;}/* right page: 15mm left gutter = binding spine; 7mm right margin gives the Remarks column's right border real clearance from the printer's edge */
+    .print-page{width:210mm;min-height:297mm;padding:11mm 15mm 7mm 5mm;page-break-after:always;background:white;position:relative;}/* left page: 15mm right gutter = binding spine */
+    .print-page.right-page{padding:11mm 7mm 7mm 15mm;}/* right page: 15mm left gutter = binding spine; 7mm right margin gives the Remarks column's right border real clearance from the printer's edge */
     @page{size:A4;margin:0;}
     @media print{body{margin:0;padding:0;}}
     .reg-title{font-size:7pt;font-weight:700;text-align:center;margin-bottom:1.5mm;padding:1mm 2mm;border:0.5pt solid #333;text-transform:uppercase;letter-spacing:.03em;}
@@ -1961,7 +1969,7 @@ function buildPrintHtml(month, year, selectedShiftId, showPen = false, rightOffs
     table.reg th,table.reg td{border:1pt solid #000;text-align:center;vertical-align:middle;padding:0;overflow:hidden;font-size:6pt;line-height:1.1;}
     table.reg th{font-weight:700;font-size:5.5pt;}
     .cn{width:5mm;} .cname{width:59mm;text-align:left!important;padding-left:1mm!important;}
-    .ctrade{width:8.5mm;} .cfnlbl{width:5mm;} .cremark{width:13mm;}
+    .ctrade{width:8.5mm;} .cfnlbl{width:5mm;} .cremark{width:17mm;}
     .fnrow td,.anrow td{height:${fnH};}
     .anrow td{height:${anH};}
     .holcell{font-weight:700;font-size:3.5pt;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;color:#000;letter-spacing:.04em;padding:0;line-height:1.05;}
@@ -2003,9 +2011,9 @@ function buildPrintHtml(month, year, selectedShiftId, showPen = false, rightOffs
     const printItems = buildPrintItemsWithBlankRows(staffInShift, perPage);
     const chunks = chunkPrintItems(printItems, perPage);
 
-    // Fixed day split: days 1-11 on the left page, the rest on the right page
-    const leftDays = Array.from({length: 11}, (_, i) => i + 1);
-    const rightDays = Array.from({length: daysInMonth - 11}, (_, i) => i + 12);
+    // Fixed day split: days 1-12 on the left page, the rest on the right page
+    const leftDays = Array.from({length: 12}, (_, i) => i + 1);
+    const rightDays = Array.from({length: daysInMonth - 12}, (_, i) => i + 13);
 
     // One cover/title page per shift
     html += buildCoverPage(shift, monthName, year, monthMal, s);
@@ -2079,7 +2087,7 @@ function buildRegisterPage(chunkItems, days, month, year, shift, monthName, isRi
   // printer's edge instead of landing right at it.
   const PAGE_USABLE_MM = isRight ? 188 : 190;
   const FIXED_COLS_MM = isRight
-    ? 13 /*cremark*/
+    ? 17 /*cremark*/
     : 5 /*cn*/ + 59 /*cname*/ + 8.5 /*ctrade*/ + 5 /*cfnlbl*/;
   const dayColW = ((PAGE_USABLE_MM - FIXED_COLS_MM) / days.length).toFixed(2) + 'mm';
 
