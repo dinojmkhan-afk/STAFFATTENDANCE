@@ -11,7 +11,7 @@
      Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
- const FIREBASE_CONFIG = {
+const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
   authDomain:        "iti-staff-attendance.firebaseapp.com",
   projectId:         "iti-staff-attendance",
@@ -2089,7 +2089,15 @@ function buildRegisterPage(chunkItems, days, month, year, shift, monthName, isRi
   const FIXED_COLS_MM = isRight
     ? 17 /*cremark*/
     : 5 /*cn*/ + 59 /*cname*/ + 8.5 /*ctrade*/ + 5 /*cfnlbl*/;
-  const dayColW = ((PAGE_USABLE_MM - FIXED_COLS_MM) / days.length).toFixed(2) + 'mm';
+  // Holiday columns get 60% of a normal day column; working-day columns share remaining space
+  const HOL_RATIO = 0.6; // holiday column = 60% of normal width
+  const holDays = days.filter(d => !!getHolidayLabel(year, month, d));
+  const workDays = days.filter(d => !getHolidayLabel(year, month, d));
+  // Solve: holDays.length*(HOL_RATIO*w) + workDays.length*w = spaceForDays
+  const spaceForDays = PAGE_USABLE_MM - FIXED_COLS_MM;
+  const unitW = spaceForDays / (workDays.length + holDays.length * HOL_RATIO);
+  const workDayW = unitW.toFixed(2) + 'mm';
+  const holDayW = (unitW * HOL_RATIO).toFixed(2) + 'mm';
 
   // Header row 1: labels (left page only — right page is day columns + Remarks)
   html += `<tr class="daynumrow">`;
@@ -2101,7 +2109,8 @@ function buildRegisterPage(chunkItems, days, month, year, shift, monthName, isRi
   }
 
   days.forEach(d => {
-    html += `<th class="cday" style="width:${dayColW};">${d}</th>`;
+    const isHol = !!getHolidayLabel(year, month, d);
+    html += `<th class="cday" style="width:${isHol ? holDayW : workDayW};">${d}</th>`;
   });
 
   if (isRight) html += `<th class="cremark">Remarks</th>`;
