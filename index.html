@@ -12,12 +12,12 @@
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
   const FIREBASE_CONFIG = {
-     apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
-  authDomain:        "iti-staff-attendance.firebaseapp.com",
-  projectId:         "iti-staff-attendance",
-  storageBucket:     "iti-staff-attendance.firebasestorage.app",
-  messagingSenderId: "753761046439",
-  appId:             "1:753761046439:web:017b0caca697ff936b3082"
+    apiKey:            "YOUR_API_KEY",
+    authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId:         "YOUR_PROJECT_ID",
+    storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId:             "YOUR_APP_ID"
   };
 </script>
 
@@ -2688,8 +2688,21 @@ fbAuth.onAuthStateChanged(user => {
     const emailEl = document.getElementById('user-email-display');
     if (emailEl) { emailEl.textContent = user.email; emailEl.title = user.email; }
 
-    // Load local cache and render immediately so the UI isn't blank while Firestore connects
-    loadData();
+    // Clear any localStorage left by a DIFFERENT user on this browser,
+    // so a new account never inherits another person's cached data.
+    const cachedRaw = localStorage.getItem('iti-attendance-db');
+    const cachedOwner = localStorage.getItem('iti-attendance-uid');
+    if (cachedOwner && cachedOwner !== user.uid) {
+      // Different user logged in — wipe the stale cache completely
+      localStorage.removeItem('iti-attendance-db');
+      localStorage.removeItem('iti-attendance-uid');
+    } else {
+      // Same user (or first ever login) — safe to load the local cache
+      loadData();
+    }
+    // Record which user owns this cache
+    localStorage.setItem('iti-attendance-uid', user.uid);
+
     refreshDashboard();
     renderStaffTable();
 
