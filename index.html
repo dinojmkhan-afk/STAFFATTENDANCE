@@ -1756,7 +1756,7 @@ function renderStaffTable() {
       </td>
     </tr>`;
 
-    for (const {s, i} of shiftStaff) {
+    for (const [{s, i}, si] of shiftStaff.map((x,si)=>[x,si])) {
       rendered.add(i);
       const desig = nameDesigLabel(s);
       const desigCell = desig
@@ -1776,7 +1776,7 @@ function renderStaffTable() {
           ondrop="staffDrop(event,${i})"
           ondragend="staffDragEnd(event)">
         <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;padding-left:18px;">
-          <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${i+1}
+          <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${si+1}
         </td>
         <td style="font-size:13px;">${s.nameMal}</td>
         <td style="font-size:12px;color:var(--fg-2);">${s.nameEng || '—'}</td>
@@ -1804,7 +1804,7 @@ function renderStaffTable() {
         ⚠️ Unassigned &nbsp;·&nbsp; <span style="font-weight:400;opacity:0.8;">${unassigned.length} staff</span>
       </td>
     </tr>`;
-    for (const {s, i} of unassigned) {
+    for (const [{s, i}, ui] of unassigned.map((x,ui)=>[x,ui])) {
       const desig = nameDesigLabel(s);
       const desigCell = desig
         ? `<span class="badge badge-blue" style="font-family:'IBM Plex Mono',monospace;font-size:10px;">${desig}</span>`
@@ -1823,7 +1823,7 @@ function renderStaffTable() {
           ondrop="staffDrop(event,${i})"
           ondragend="staffDragEnd(event)">
         <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;padding-left:18px;">
-          <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${i+1}
+          <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${ui+1}
         </td>
         <td style="font-size:13px;">${s.nameMal}</td>
         <td style="font-size:12px;color:var(--fg-2);">${s.nameEng || '—'}</td>
