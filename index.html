@@ -1877,17 +1877,30 @@ function staffDragEnd(e) {
   _dragSrcIdx = null;
 }
 function staffMoveTo(id, posStr) {
-  const toIdx = parseInt(posStr) - 1;
-  if (isNaN(toIdx)) return;
+  const withinPos = parseInt(posStr) - 1; // 0-based position within the shift group
+  if (isNaN(withinPos) || withinPos < 0) return;
   const fromIdx = db.staff.findIndex(s => s.id === id);
   if (fromIdx === -1) return;
-  const clampedTo = Math.max(0, Math.min(db.staff.length - 1, toIdx));
+  const staff = db.staff[fromIdx];
+
+  // Find all db.staff indices that belong to the same shift group (in order)
+  const groupIndices = db.staff
+    .map((s, i) => ({s, i}))
+    .filter(({s}) => s.shiftId === staff.shiftId)
+    .map(({i}) => i);
+
+  const clampedWithin = Math.max(0, Math.min(groupIndices.length - 1, withinPos));
+  const targetGlobalIdx = groupIndices[clampedWithin];
+
+  if (fromIdx === targetGlobalIdx) return;
   const arr = db.staff.slice();
   const [moved] = arr.splice(fromIdx, 1);
-  arr.splice(clampedTo, 0, moved);
+  // After removal, recalculate target index
+  const newTarget = targetGlobalIdx > fromIdx ? targetGlobalIdx - 1 : targetGlobalIdx;
+  arr.splice(newTarget, 0, moved);
   db.staff = arr;
   saveData(); renderStaffTable();
-  toast(`Moved to position ${clampedTo + 1}`);
+  toast(`Moved to position ${clampedWithin + 1}`);
 }
 
 async function sortStaffByDesig() {
