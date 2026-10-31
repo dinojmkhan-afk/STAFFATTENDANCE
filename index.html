@@ -11,14 +11,14 @@
      Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
-  authDomain:        "iti-staff-attendance.firebaseapp.com",
-  projectId:         "iti-staff-attendance",
-  storageBucket:     "iti-staff-attendance.firebasestorage.app",
-  messagingSenderId: "753761046439",
-  appId:             "1:753761046439:web:017b0caca697ff936b3082"
-};
+  const FIREBASE_CONFIG = {
+    apiKey:            "YOUR_API_KEY",
+    authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId:         "YOUR_PROJECT_ID",
+    storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId:             "YOUR_APP_ID"
+  };
 </script>
 
 <!-- Firebase SDK (compat v8 syntax — works in a plain HTML file, no build step needed) -->
@@ -779,6 +779,10 @@ tr:hover td { background: var(--accent-soft); }
                 <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
                   <input type="checkbox" id="opt-show-pen" style="width:15px;height:15px;cursor:pointer;" onchange="rememberGenOptions()">
                   Show PEN number under name
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                  <input type="checkbox" id="opt-blank-after-cover" style="width:15px;height:15px;cursor:pointer;" onchange="rememberGenOptions()">
+                  Insert 2 blank pages after cover (duplex — print cover on separate sheet)
                 </label>
                 <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
                   Right page top offset (mm)
@@ -1910,11 +1914,13 @@ function populateGenShifts() {
   sel.innerHTML = `<option value="all">All Shifts</option>` + db.shifts.map(sh => `<option value="${sh.id}">${sh.name}</option>`).join('');
   // Restore the last-used Generate panel options (saved via rememberGenOptions)
   document.getElementById('opt-show-pen').checked = !!db.settings.showPen;
+  document.getElementById('opt-blank-after-cover').checked = !!db.settings.blankAfterCover;
   document.getElementById('opt-right-offset').value = (db.settings.rightOffsetMm != null) ? db.settings.rightOffsetMm : 0;
 }
 
 function rememberGenOptions() {
   db.settings.showPen = document.getElementById('opt-show-pen').checked;
+  db.settings.blankAfterCover = document.getElementById('opt-blank-after-cover').checked;
   db.settings.rightOffsetMm = parseFloat(document.getElementById('opt-right-offset').value) || 0;
   saveData();
 }
@@ -1940,7 +1946,7 @@ function getHolidayAbbr(label) {
 }
 
 // ===== BUILD PRINT HTML =====
-function buildPrintHtml(month, year, selectedShiftId, showPen = false, rightOffsetMm = 0) {
+function buildPrintHtml(month, year, selectedShiftId, showPen = false, rightOffsetMm = 0, blankAfterCover = false) {
   const s = db.settings;
   const daysInMonth = getDaysInMonth(year, month);
   const fnH = (s.fnheight || 6) + 'mm';
@@ -2018,6 +2024,14 @@ function buildPrintHtml(month, year, selectedShiftId, showPen = false, rightOffs
     // One cover/title page per shift
     html += buildCoverPage(shift, monthName, year, monthMal, s);
     let pageCount = 1; // cover page counts as one side
+
+    // Optional: 2 blank pages after cover so the cover prints on its own sheet
+    // when duplex printing — the register pages then start on a fresh sheet.
+    if (blankAfterCover) {
+      html += `<div class="print-page blank-page"></div>`;
+      html += `<div class="print-page blank-page"></div>`;
+      pageCount += 2;
+    }
 
     chunks.forEach((chunkItems, chunkIdx) => {
       // Left page (days 1-11)
@@ -2184,6 +2198,7 @@ function buildGeneratedRegister() {
   const year = parseInt(document.getElementById('gen-year').value);
   const shiftId = document.getElementById('gen-shift').value;
   const showPen = document.getElementById('opt-show-pen').checked;
+  const blankAfterCover = document.getElementById('opt-blank-after-cover').checked;
   const rightOffsetMm = parseFloat(document.getElementById('opt-right-offset').value) || 0;
   rememberGenOptions(); // belt-and-suspenders: whatever is actually used to generate is always saved
 
@@ -2195,7 +2210,7 @@ function buildGeneratedRegister() {
   const staffCheck = shiftsToGen.some(sh => db.staff.some(s => s.shiftId === sh.id));
   if (!staffCheck) { toast('No staff in selected shift(s)!'); return null; }
 
-  const printHtml = buildPrintHtml(month, year, shiftId, showPen, rightOffsetMm);
+  const printHtml = buildPrintHtml(month, year, shiftId, showPen, rightOffsetMm, blankAfterCover);
 
   // Month name for filename
   const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
