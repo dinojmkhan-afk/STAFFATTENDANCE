@@ -1696,6 +1696,8 @@ function moveStaff(id, dir) {
   saveData(); renderStaffTable();
 }
 
+let _dragSrcIdx = null;
+
 function renderStaffTable() {
   const tbody = document.getElementById('staff-table-body');
   if (!db.staff.length) {
@@ -1716,8 +1718,15 @@ function renderStaffTable() {
     const tradeCell = tradeCellVal
       ? `<span class="badge badge-blue">${tradeCellVal}</span>`
       : '<span style="color:var(--fg-3)">—</span>';
-    return `<tr>
-      <td style="font-variant-numeric:tabular-nums;color:var(--fg-3)">${i+1}</td>
+    return `<tr draggable="true" data-idx="${i}" style="cursor:grab;"
+        ondragstart="staffDragStart(event,${i})"
+        ondragover="staffDragOver(event)"
+        ondragleave="staffDragLeave(event)"
+        ondrop="staffDrop(event,${i})"
+        ondragend="staffDragEnd(event)">
+      <td style="font-variant-numeric:tabular-nums;color:var(--fg-3);user-select:none;">
+        <span title="Drag to reorder" style="cursor:grab;font-size:14px;color:var(--fg-3);margin-right:4px;">⠿</span>${i+1}
+      </td>
       <td style="font-size:13px;">${s.nameMal}</td>
       <td style="font-size:12px;color:var(--fg-2);">${s.nameEng || '—'}</td>
       <td>${desigCell}</td>
@@ -1725,13 +1734,58 @@ function renderStaffTable() {
       <td>${tradeCell}</td>
       <td style="font-size:12px;">${shift ? shift.name : '<span style="color:var(--fg-3)">Unassigned</span>'}</td>
       <td style="white-space:nowrap;">
-        <button class="btn btn-icon btn-secondary btn-sm" title="Move up" onclick="moveStaff(${s.id},-1)">↑</button>
-        <button class="btn btn-icon btn-secondary btn-sm" title="Move down" onclick="moveStaff(${s.id},1)">↓</button>
         <button class="btn btn-sm btn-secondary" onclick="openStaffModal(${s.id})">Edit</button>
         <button class="btn btn-sm btn-danger" onclick="deleteStaff(${s.id})">✕</button>
+        <input type="number" min="1" max="${db.staff.length}" placeholder="#"
+          title="Type a position number and press Enter to move here"
+          style="width:42px;font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--bg-2);color:var(--fg-1);text-align:center;"
+          onkeydown="if(event.key==='Enter'){staffMoveTo(${s.id},this.value);this.value='';}" />
       </td>
     </tr>`;
   }).join('');
+}
+
+function staffDragStart(e, idx) {
+  _dragSrcIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.4';
+}
+function staffDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.style.outline = '2px solid var(--accent-1)';
+}
+function staffDragLeave(e) {
+  e.currentTarget.style.outline = '';
+}
+function staffDrop(e, toIdx) {
+  e.preventDefault();
+  e.currentTarget.style.outline = '';
+  if (_dragSrcIdx === null || _dragSrcIdx === toIdx) return;
+  const arr = db.staff.slice();
+  const [moved] = arr.splice(_dragSrcIdx, 1);
+  arr.splice(toIdx, 0, moved);
+  db.staff = arr;
+  _dragSrcIdx = null;
+  saveData(); renderStaffTable();
+}
+function staffDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  e.currentTarget.style.outline = '';
+  _dragSrcIdx = null;
+}
+function staffMoveTo(id, posStr) {
+  const toIdx = parseInt(posStr) - 1;
+  if (isNaN(toIdx)) return;
+  const fromIdx = db.staff.findIndex(s => s.id === id);
+  if (fromIdx === -1) return;
+  const clampedTo = Math.max(0, Math.min(db.staff.length - 1, toIdx));
+  const arr = db.staff.slice();
+  const [moved] = arr.splice(fromIdx, 1);
+  arr.splice(clampedTo, 0, moved);
+  db.staff = arr;
+  saveData(); renderStaffTable();
+  toast(`Moved to position ${clampedTo + 1}`);
 }
 
 async function sortStaffByDesig() {
