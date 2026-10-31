@@ -1,0 +1,2708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ITI Attendance Book</title>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     FIREBASE CONFIGURATION
+     Replace every value below with your own Firebase project's config.
+     Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
+     ═══════════════════════════════════════════════════════════════════ -->
+<script>
+  const FIREBASE_CONFIG = {
+     apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
+  authDomain:        "iti-staff-attendance.firebaseapp.com",
+  projectId:         "iti-staff-attendance",
+  storageBucket:     "iti-staff-attendance.firebasestorage.app",
+  messagingSenderId: "753761046439",
+  appId:             "1:753761046439:web:017b0caca697ff936b3082"
+  };
+</script>
+
+<!-- Firebase SDK (compat v8 syntax — works in a plain HTML file, no build step needed) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const fbAuth = firebase.auth();
+  const fbDb   = firebase.firestore();
+</script>
+
+<!-- ─────────────────────────────────────────────────────────────────
+     AUTH SCREEN — shown when the user is not logged in
+     Hidden once Firebase confirms authentication.
+     ───────────────────────────────────────────────────────────────── -->
+<div id="auth-screen" style="
+  display:flex; align-items:center; justify-content:center;
+  min-height:100vh; background:#f5f6f8; padding:20px;
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+">
+  <div style="
+    background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,.12);
+    width:100%; max-width:420px; overflow:hidden;
+  ">
+    <!-- Header -->
+    <div style="background:#1a4b8c; padding:28px 32px 24px; color:#fff;">
+      <div style="font-size:20px;font-weight:700;letter-spacing:.02em;">ITI Attendance Book</div>
+      <div style="font-size:13px;opacity:.75;margin-top:4px;">Govt. International ITI, Dhanuvachapuram</div>
+    </div>
+
+    <!-- Tab bar -->
+    <div style="display:flex; border-bottom:1px solid #e8eaef;">
+      <button id="tab-login-btn" onclick="authShowTab('login')"
+        style="flex:1;padding:13px;border:none;background:none;
+               font:600 13px 'IBM Plex Sans',system-ui,sans-serif;
+               color:#1a4b8c;border-bottom:2px solid #1a4b8c;cursor:pointer;">
+        Sign In
+      </button>
+      <button id="tab-register-btn" onclick="authShowTab('register')"
+        style="flex:1;padding:13px;border:none;background:none;
+               font:500 13px 'IBM Plex Sans',system-ui,sans-serif;
+               color:#718096;border-bottom:2px solid transparent;cursor:pointer;">
+        Create Account
+      </button>
+    </div>
+
+    <div style="padding:28px 32px 24px;">
+
+      <!-- ── LOGIN FORM ── -->
+      <form id="auth-login-form" onsubmit="authDoLogin(event)" style="display:block;">
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px;">Email</label>
+          <input id="login-email" type="email" required autocomplete="email"
+            style="width:100%;padding:10px 12px;border:1px solid #d0d5de;border-radius:7px;
+                   font:14px 'IBM Plex Sans',system-ui,sans-serif;outline:none;box-sizing:border-box;"
+            onfocus="this.style.borderColor='#1a4b8c'" onblur="this.style.borderColor='#d0d5de'"
+            placeholder="your@email.com">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px;">Password</label>
+          <input id="login-password" type="password" required autocomplete="current-password"
+            style="width:100%;padding:10px 12px;border:1px solid #d0d5de;border-radius:7px;
+                   font:14px 'IBM Plex Sans',system-ui,sans-serif;outline:none;box-sizing:border-box;"
+            onfocus="this.style.borderColor='#1a4b8c'" onblur="this.style.borderColor='#d0d5de'"
+            placeholder="••••••••">
+        </div>
+        <div style="text-align:right;margin-bottom:20px;">
+          <button type="button" onclick="authShowTab('forgot')"
+            style="background:none;border:none;color:#1a4b8c;font-size:12px;cursor:pointer;padding:0;">
+            Forgot password?
+          </button>
+        </div>
+        <div id="auth-login-error" style="display:none;color:#c0392b;font-size:13px;margin-bottom:12px;padding:8px 12px;background:#fdf2f2;border-radius:6px;"></div>
+        <button type="submit" id="auth-login-btn"
+          style="width:100%;padding:11px;background:#1a4b8c;color:#fff;border:none;border-radius:7px;
+                 font:600 14px 'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;transition:background .15s;"
+          onmouseover="this.style.background='#153d72'" onmouseout="this.style.background='#1a4b8c'">
+          Sign In
+        </button>
+      </form>
+
+      <!-- ── REGISTER FORM ── -->
+      <form id="auth-register-form" onsubmit="authDoRegister(event)" style="display:none;">
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px;">Email</label>
+          <input id="reg-email" type="email" required autocomplete="email"
+            style="width:100%;padding:10px 12px;border:1px solid #d0d5de;border-radius:7px;
+                   font:14px 'IBM Plex Sans',system-ui,sans-serif;outline:none;box-sizing:border-box;"
+            onfocus="this.style.borderColor='#1a4b8c'" onblur="this.style.borderColor='#d0d5de'"
+            placeholder="your@email.com">
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px;">Password</label>
+          <input id="reg-password" type="password" required autocomplete="new-password" minlength="6"
+            style="width:100%;padding:10px 12px;border:1px solid #d0d5de;border-radius:7px;
+                   font:14px 'IBM Plex Sans',system-ui,sans-serif;outline:none;box-sizing:border-box;"
+            onfocus="this.style.borderColor='#1a4b8c'" onblur="this.style.borderColor='#d0d5de'"
+            placeholder="At least 6 characters">
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px;">Confirm Password</label>
+          <input id="reg-password2" type="password" required autocomplete="new-password"
+            style="width:100%;padding:10px 12px;border:1px solid #d0d5de;border-radius:7px;
+                   font:14px 'IBM Plex Sans',system-ui,sans-serif;outline:none;box-sizing:border-box;"
+            onfocus="this.style.borderColor='#1a4b8c'" onblur="this.style.borderColor='#d0d5de'"
+            placeholder="Repeat password">
+        </div>
+        <div id="auth-register-error" style="display:none;color:#c0392b;font-size:13px;margin-bottom:12px;padding:8px 12px;background:#fdf2f2;border-radius:6px;"></div>
+        <button type="submit" id="auth-register-btn"
+          style="width:100%;padding:11px;background:#1a4b8c;color:#fff;border:none;border-radius:7px;
+                 font:600 14px 'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;transition:background .15s;"
+          onmouseover="this.style.background='#153d72'" onmouseout="this.style.background='#1a4b8c'">
+          Create Account
+        </button>
+        <p style="font-size:12px;color:#718096;margin-top:14px;text-align:center;line-height:1.5;">
+          Your data is private to your account. Each instructor has their own separate attendance records.
+        </p>
+      </form>
+
+      <!-- ── FORGOT PASSWORD FORM ── -->
+      <div id="auth-forgot-form" style="display:none;">
+        <p style="font-size:14px;color:#4a5568;margin-bottom:20px;line-height:1.6;">
+          Enter your email address and we'll send you a link to reset your password.
+        </p>
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px;">Email</label>
+          <input id="forgot-email" type="email" autocomplete="email"
+            style="width:100%;padding:10px 12px;border:1px solid #d0d5de;border-radius:7px;
+                   font:14px 'IBM Plex Sans',system-ui,sans-serif;outline:none;box-sizing:border-box;"
+            onfocus="this.style.borderColor='#1a4b8c'" onblur="this.style.borderColor='#d0d5de'"
+            placeholder="your@email.com">
+        </div>
+        <div id="auth-forgot-msg" style="display:none;font-size:13px;margin-bottom:12px;padding:8px 12px;border-radius:6px;"></div>
+        <button onclick="authDoForgot()"
+          style="width:100%;padding:11px;background:#1a4b8c;color:#fff;border:none;border-radius:7px;
+                 font:600 14px 'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;transition:background .15s;"
+          onmouseover="this.style.background='#153d72'" onmouseout="this.style.background='#1a4b8c'">
+          Send Reset Link
+        </button>
+        <div style="text-align:center;margin-top:16px;">
+          <button onclick="authShowTab('login')"
+            style="background:none;border:none;color:#1a4b8c;font-size:13px;cursor:pointer;">
+            ← Back to Sign In
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /padding -->
+  </div><!-- /card -->
+</div><!-- /#auth-screen -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Malayalam:wght@400;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+/* ========= DESIGN TOKENS =========
+   Layout: App shell — sidebar nav + main content area, print sheets separate
+   Color: Government blue palette, Kerala institutional identity
+   Type: IBM Plex Sans (UI), Noto Serif Malayalam (register headers), IBM Plex Mono (data)
+*/
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --border: #d0d5de;
+  --border-light: #e8eaef;
+  --fg: #1a2233;
+  --fg-2: #4a5568;
+  --fg-3: #718096;
+  --accent: #1a4b8c;
+  --accent-hover: #153d72;
+  --accent-soft: #e8edf7;
+  --accent-2: #c0392b;
+  --success: #276749;
+  --success-soft: #e6f4ec;
+  --warning: #92610a;
+  --warning-soft: #fef7e6;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow: 0 4px 12px rgba(0,0,0,.10), 0 2px 4px rgba(0,0,0,.06);
+  --radius: 8px;
+  --radius-sm: 5px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1520;
+    --surface: #1a2235;
+    --surface-2: #242e42;
+    --border: #2e3a50;
+    --border-light: #253044;
+    --fg: #e8ecf3;
+    --fg-2: #a0aec0;
+    --fg-3: #718096;
+    --accent: #4a7ec8;
+    --accent-hover: #5a8ed8;
+    --accent-soft: #1a2d4a;
+    --accent-2: #e05a4d;
+    --success: #68c98a;
+    --success-soft: #0d2a18;
+    --warning: #f6c96c;
+    --warning-soft: #2a1e04;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+    --shadow: 0 4px 12px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1520; --surface: #1a2235; --surface-2: #242e42;
+  --border: #2e3a50; --border-light: #253044;
+  --fg: #e8ecf3; --fg-2: #a0aec0; --fg-3: #718096;
+  --accent: #4a7ec8; --accent-hover: #5a8ed8; --accent-soft: #1a2d4a;
+  --accent-2: #e05a4d; --success: #68c98a; --success-soft: #0d2a18;
+  --warning: #f6c96c; --warning-soft: #2a1e04;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3); --shadow: 0 4px 12px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.5;
+  padding-left: max(0px, env(safe-area-inset-left,0px));
+  padding-right: max(0px, env(safe-area-inset-right,0px));
+}
+
+/* ===== LAYOUT ===== */
+.app-shell { display: flex; height: 100%; }
+
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sidebar-brand {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.15);
+}
+.sidebar-brand h1 { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .9; line-height: 1.3; }
+.sidebar-brand p { font-size: 11px; opacity: .65; margin-top: 3px; }
+
+.nav-section { padding: 8px 0; }
+.nav-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; opacity: .5; padding: 8px 16px 4px; }
+.nav-btn {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 9px 16px;
+  background: none; border: none; color: inherit; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  opacity: .8; text-align: left;
+  transition: background .15s, opacity .15s;
+}
+.nav-btn:hover { background: rgba(255,255,255,.1); opacity: 1; }
+.nav-btn.active { background: rgba(255,255,255,.18); opacity: 1; }
+.nav-btn svg { flex-shrink: 0; opacity: .8; }
+.nav-divider { border: none; border-top: 1px solid rgba(255,255,255,.12); margin: 4px 16px; }
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.topbar-title { font-size: 16px; font-weight: 600; color: var(--fg); }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+.content-inner { max-width: 960px; margin: 0 auto; }
+
+/* ===== PANELS ===== */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+.card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.card-title { font-size: 14px; font-weight: 600; color: var(--fg); }
+.card-body { padding: 20px; }
+
+/* ===== FORM CONTROLS ===== */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-row.single { grid-template-columns: 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+label { font-size: 12px; font-weight: 600; color: var(--fg-2); letter-spacing: .02em; }
+input, select, textarea {
+  padding: 8px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+textarea { resize: vertical; min-height: 70px; }
+select { cursor: pointer; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  border: none; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 500; transition: all .15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: var(--surface-2); color: var(--fg); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border-light); }
+.btn-danger { background: #fde8e6; color: var(--accent-2); border: 1px solid #f5c6c2; }
+.btn-danger:hover { background: #fbd5d2; }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+.btn-icon { padding: 6px 8px; }
+
+/* ===== TABLE ===== */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border-light); }
+th { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-3); background: var(--surface-2); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--accent-soft); }
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; letter-spacing: .02em;
+}
+.badge-blue { background: var(--accent-soft); color: var(--accent); }
+.badge-green { background: var(--success-soft); color: var(--success); }
+.badge-warn { background: var(--warning-soft); color: var(--warning); }
+
+/* ===== MODAL ===== */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+}
+.overlay[hidden] { display: none; }
+.modal {
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: var(--shadow); width: 100%; max-width: 520px;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: 15px; font-weight: 600; }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ===== TOAST ===== */
+#toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  background: var(--fg); color: var(--bg);
+  padding: 11px 18px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow);
+  transform: translateY(60px); opacity: 0;
+  transition: transform .3s, opacity .3s;
+  pointer-events: none;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+
+/* ===== DASHBOARD STATS ===== */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.stat-label { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 6px; }
+.stat-val { font-size: 26px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.stat-sub { font-size: 11px; color: var(--fg-3); margin-top: 3px; }
+
+/* ===== SHIFT SELECTOR ===== */
+.shift-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.shift-tab {
+  padding: 7px 16px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border); background: var(--surface);
+  color: var(--fg-2); cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500;
+  transition: all .15s;
+}
+.shift-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+.shift-tab:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+/* ===== SETTINGS ===== */
+.settings-section { margin-bottom: 24px; }
+.settings-section h3 { font-size: 13px; font-weight: 600; color: var(--fg-2); letter-spacing: .03em; text-transform: uppercase; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light); }
+
+/* ===== PRINT PREVIEW ===== */
+.print-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.print-option-card {
+  border: 2px solid var(--border); border-radius: var(--radius);
+  padding: 16px; cursor: pointer; transition: all .15s; background: var(--surface);
+}
+.print-option-card:hover { border-color: var(--accent); }
+.print-option-card.selected { border-color: var(--accent); background: var(--accent-soft); }
+.print-option-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.print-option-card p { font-size: 12px; color: var(--fg-3); }
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  .app-shell, .sidebar, .topbar, .overlay, #toast { display: none !important; }
+  body { background: white; color: black; padding: 0; margin: 0; }
+  .print-root { display: block !important; }
+  .print-page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 12mm 20mm 12mm 10mm; /* right gutter for binding spine */
+    page-break-after: always;
+    background: white;
+    box-sizing: border-box;
+  }
+  .print-page.right-page {
+    padding: 12mm 10mm 12mm 20mm; /* left gutter for binding spine */
+  }
+  @page { size: A4; margin: 0; }
+}
+.print-root { display: none; }
+
+/* ===== PRINT PAGE CONTENT ===== */
+.print-page {
+  font-family: 'IBM Plex Sans', Arial, sans-serif;
+  font-size: 7.5pt;
+  color: #000;
+}
+.print-header { text-align: center; margin-bottom: 5mm; }
+.print-header .dept { font-size: 7pt; letter-spacing: .05em; text-transform: uppercase; }
+.print-header .org { font-size: 9pt; font-weight: 700; text-transform: uppercase; }
+.print-header .inst { font-size: 10pt; font-weight: 700; text-transform: uppercase; margin-bottom: 1mm; }
+.print-header .mal { font-family: 'Noto Serif Malayalam', serif; font-size: 10pt; font-weight: 700; }
+.print-header .month-title { font-size: 8pt; font-weight: 600; margin-top: 1.5mm; border-top: 1px solid #999; border-bottom: 1px solid #999; padding: 1mm 0; }
+.print-header .shift-title { font-size: 8pt; font-weight: 600; }
+
+.reg-title { font-size: 7.5pt; font-weight: 700; text-align: center; margin-bottom: 1.5mm; border: 1px solid #000; padding: 1mm; text-transform: uppercase; letter-spacing: .03em; }
+
+/* Register table */
+.reg-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.reg-table th, .reg-table td {
+  border: 0.5pt solid #333;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0;
+  font-size: 6.5pt;
+  line-height: 1.1;
+  overflow: hidden;
+}
+.reg-table th { background: #e8e8e8; font-weight: 700; font-size: 6pt; }
+
+/* Column widths */
+.col-no { width: 5mm; }
+.col-name { width: auto; text-align: left !important; padding-left: 1mm !important; }
+.col-trade { width: 9mm; }
+.col-fn { width: 5mm; font-size: 5.5pt; }
+.col-day { width: 6mm; }
+.col-remarks { width: 14mm; }
+
+/* Staff row */
+.staff-row-label td {
+  font-weight: 600;
+  font-size: 6.5pt;
+  padding: 0.8mm 1mm;
+  text-align: left;
+}
+/* FN/AN pair rows */
+.fn-row td, .an-row td { height: 5.5mm; }
+.fn-row .col-fn, .an-row .col-fn {
+  font-weight: 700; font-size: 5pt; writing-mode: horizontal-tb;
+}
+/* Holiday cells */
+.holiday-cell {
+  background: #f0f0f0;
+  font-weight: 700;
+  font-size: 5pt;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+  color: #444;
+  letter-spacing: .05em;
+}
+/* Day number header */
+.day-num-row th { font-size: 6pt; padding: 0.5mm; font-weight: 700; }
+
+/* Signature space indicator */
+.sig-space { min-height: 5mm; }
+
+/* Footer */
+.print-footer { margin-top: 5mm; font-size: 6.5pt; display: flex; justify-content: space-between; border-top: 0.5pt solid #000; padding-top: 2mm; }
+
+/* Responsive */
+@media (max-width: 700px) {
+  .sidebar { width: 60px; min-width: 60px; }
+  .sidebar-brand h1, .sidebar-brand p, .nav-label, .nav-btn span { display: none; }
+  .nav-btn { justify-content: center; padding: 10px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .form-row.three { grid-template-columns: 1fr; }
+  .print-options { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .topbar { padding: 10px 14px; }
+  .content { padding: 14px; }
+}
+</style>
+
+<!-- ===== APP SHELL ===== -->
+<div id="app-screen" style="display:none;height:100%;">
+<div class="app-shell">
+
+  <!-- Sidebar Navigation -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <h1>ITI Attendance Book</h1>
+      <p>Govt. International ITI<br>Dhanuvachapuram</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <button class="nav-btn active" onclick="showPanel('dashboard')" id="nav-dashboard">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-btn" onclick="showPanel('staff')" id="nav-staff">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Staff</span>
+      </button>
+      <button class="nav-btn" onclick="showPanel('shifts')" id="nav-shifts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Shifts</span>
+      </button>
+    </div>
+    <hr class="nav-divider">
+    <div class="nav-section">
+      <div class="nav-label">Output</div>
+      <button class="nav-btn" onclick="showPanel('preview')" id="nav-preview">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Generate</span>
+      </button>
+      <button class="nav-btn" onclick="showPanel('settings')" id="nav-settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Settings</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Dashboard</span>
+      <div class="topbar-actions" id="topbar-actions">
+        <span id="user-email-display" style="font-size:12px;color:var(--fg-3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title=""></span>
+        <span id="sync-status" style="font-size:12px;display:inline-flex;align-items:center;gap:5px;color:var(--fg-3);" title="">—</span>
+        <button onclick="authSignOut()" title="Sign out"
+          style="padding:5px 12px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);
+                 font:500 12px 'IBM Plex Sans',system-ui,sans-serif;color:var(--fg-2);cursor:pointer;">
+          Sign Out
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="content-inner">
+
+        <!-- ===== DASHBOARD PANEL ===== -->
+        <div class="panel active" id="panel-dashboard">
+          <div class="stats-grid" id="stats-grid">
+            <div class="stat-card"><div class="stat-label">Total Staff</div><div class="stat-val" id="stat-staff">0</div><div class="stat-sub">All categories</div></div>
+            <div class="stat-card"><div class="stat-label">Shifts</div><div class="stat-val" id="stat-shifts">0</div><div class="stat-sub">Configured</div></div>
+            <div class="stat-card"><div class="stat-label">Month</div><div class="stat-val" id="stat-month">—</div><div class="stat-sub" id="stat-year"></div></div>
+            <div class="stat-card"><div class="stat-label">Pages</div><div class="stat-val" id="stat-pages">0</div><div class="stat-sub">For printing</div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Quick Start</span>
+            </div>
+            <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+              <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;" onclick="showPanel('staff')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="margin-bottom:8px"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                <div style="font-size:13px;font-weight:600;color:var(--fg)">Add Staff</div>
+                <div style="font-size:11px;color:var(--fg-3);margin-top:3px">Enter staff details</div>
+              </div>
+              <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;" onclick="showPanel('shifts')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="margin-bottom:8px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <div style="font-size:13px;font-weight:600;color:var(--fg)">Configure Shifts</div>
+                <div style="font-size:11px;color:var(--fg-3);margin-top:3px">Set timing & category</div>
+              </div>
+              <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;" onclick="showPanel('preview')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="margin-bottom:8px"><polyline points="6 9 12 15 18 9"/></svg>
+                <div style="font-size:13px;font-weight:600;color:var(--fg)">Generate & Print</div>
+                <div style="font-size:11px;color:var(--fg-3);margin-top:3px">Print attendance book</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">Staff by Shift</span></div>
+            <div class="card-body" id="dash-shift-summary">
+              <p style="color:var(--fg-3);font-size:13px;">No shifts configured yet. Go to <strong>Shifts</strong> to add shifts.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== STAFF PANEL ===== -->
+        <div class="panel" id="panel-staff">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Staff Members</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <button class="btn btn-secondary btn-sm" onclick="sortStaffByDesig()" title="Sort all staff by designation order (PRL→VP→GI→SI→JI→WA→DRSR→SWP) within each shift">
+                  ↕ Sort by Designation
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="openStaffModal()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add Staff
+                </button>
+              </div>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:36px">#</th>
+                    <th>Name (Malayalam)</th>
+                    <th>Name (English)</th>
+                    <th>Desig</th>
+                    <th>PEN</th>
+                    <th>Trade</th>
+                    <th>Shift</th>
+                    <th style="width:110px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="staff-table-body">
+                  <tr><td colspan="8" style="text-align:center;color:var(--fg-3);padding:20px;">No staff added yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SHIFTS PANEL ===== -->
+        <div class="panel" id="panel-shifts">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Shift Configuration</span>
+              <button class="btn btn-primary btn-sm" onclick="openShiftModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Shift
+              </button>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Shift Name</th>
+                    <th>Category / Type</th>
+                    <th>Staff Count</th>
+                    <th style="width:120px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="shift-table-body">
+                  <tr><td colspan="6" style="text-align:center;color:var(--fg-3);padding:20px;">No shifts configured. Add shifts to begin.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">Holiday / Special Day Configuration</span></div>
+            <div class="card-body">
+              <p style="font-size:12px;color:var(--fg-3);margin-bottom:14px;">Mark days as Sunday, Holiday, or Second Saturday. These appear as vertical text in the register columns.</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Month</label>
+                  <select id="hol-month">
+                    <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+                    <option value="3">April</option><option value="4">May</option><option value="5">June</option>
+                    <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+                    <option value="9" selected>October</option><option value="10">November</option><option value="11">December</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Year</label>
+                  <input type="number" id="hol-year" value="2026" min="2020" max="2040">
+                </div>
+              </div>
+              <div id="holiday-grid" style="margin-top:8px;"></div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="autoMarkHolidays()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M9 12l2 2 4-4"/></svg>
+                Auto-mark Sundays &amp; 2nd Saturdays
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== GENERATE PANEL ===== -->
+        <div class="panel" id="panel-preview">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Print Options</span></div>
+            <div class="card-body">
+              <div class="form-row three">
+                <div class="form-group">
+                  <label>Month</label>
+                  <select id="gen-month">
+                    <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+                    <option value="3">April</option><option value="4">May</option><option value="5">June</option>
+                    <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+                    <option value="9" selected>October</option><option value="10">November</option><option value="11">December</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Year</label>
+                  <input type="number" id="gen-year" value="2026" min="2020" max="2040">
+                </div>
+                <div class="form-group">
+                  <label>Shift to Print</label>
+                  <select id="gen-shift"></select>
+                </div>
+              </div>
+              <div class="print-options">
+                <div class="print-option-card selected" id="opt-both" onclick="selectPrintOpt('both')">
+                  <h4>📄 Left + Right Pages</h4>
+                  <p>Left page: days 1–11 + staff names + trade column. Right page: days 12–end + Remarks only (no repeated name columns), for maximum signature width. Suitable for binding.</p>
+                </div>
+                <div class="print-option-card" id="opt-left" onclick="selectPrintOpt('left')">
+                  <h4>← Left Page Only</h4>
+                  <p>Days 1–11 + staff names + trade column. With left-side gutter for binding spine.</p>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;margin:10px 0;padding:10px 14px;background:var(--bg-2);border-radius:8px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                  <input type="checkbox" id="opt-show-pen" style="width:15px;height:15px;cursor:pointer;" onchange="rememberGenOptions()">
+                  Show PEN number under name
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+                  Right page top offset (mm)
+                  <input type="number" id="opt-right-offset" value="0" step="0.5" style="width:70px;" onchange="rememberGenOptions()">
+                </label>
+              </div>
+              <p style="font-size:11px;color:var(--fg-3);margin:-4px 0 4px;">💡 If the right-side page's rows don't line up with the left-side page's rows once printed, nudge this up or down (mm) and regenerate — positive pushes the right page's content down, negative pulls it up.</p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn btn-secondary" onclick="openBookInNewTab()">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Open Book
+                </button>
+                <button class="btn btn-primary" onclick="generateAndPrint()">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download Register (.html)
+                </button>
+              </div>
+              <p style="font-size:11px;color:var(--fg-3);margin-top:10px;">💡 <strong>Open Book</strong> previews the register in a new browser tab — use that tab's own print (Ctrl+P / ⌘P) to print or save as PDF. <strong>Download Register</strong> saves the .html file to your device instead. Either way: Paper A4, Margins None, Background graphics on.</p>
+              <div id="print-frame-container" style="display:none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SETTINGS PANEL ===== -->
+        <div class="panel" id="panel-settings">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Institution Settings</span></div>
+            <div class="card-body">
+              <div class="settings-section">
+                <h3>Institution Details</h3>
+                <div class="form-row single">
+                  <div class="form-group">
+                    <label>Government Header Line</label>
+                    <input type="text" id="s-govtheader" value="GOVT OF KERALA">
+                  </div>
+                </div>
+                <div class="form-row single">
+                  <div class="form-group">
+                    <label>Department</label>
+                    <input type="text" id="s-dept" value="INDUSTRIAL TRAINING DEPARTMENT">
+                  </div>
+                </div>
+                <div class="form-row single">
+                  <div class="form-group">
+                    <label>Institution Name (English)</label>
+                    <input type="text" id="s-instname" value="GOVERNMENT INTERNATIONAL ITI">
+                  </div>
+                </div>
+                <div class="form-row single">
+                  <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="s-loc" value="DHANUVACHAPURAM">
+                  </div>
+                </div>
+                <div class="form-row single">
+                  <div class="form-group">
+                    <label>Title in Malayalam (ഹാജർ പുസ്തകം)</label>
+                    <input type="text" id="s-mal" value="ഹാജർ പുസ്തകം">
+                  </div>
+                </div>
+                <div class="form-row single">
+                  <div class="form-group">
+                    <label>Section Label in Malayalam (e.g. സാങ്കേതിക വിഭാഗം)</label>
+                    <input type="text" id="s-sec" value="സാങ്കേതിക വിഭാഗം">
+                  </div>
+                </div>
+              </div>
+              <div class="settings-section">
+                <h3>Register Row Height</h3>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>FN Row Height (mm) — signature space</label>
+                    <input type="number" id="s-fnheight" value="6" min="4" max="14" step="0.5">
+                  </div>
+                  <div class="form-group">
+                    <label>AN Row Height (mm) — signature space</label>
+                    <input type="number" id="s-anheight" value="6" min="4" max="14" step="0.5">
+                  </div>
+                </div>
+              </div>
+              <div class="settings-section">
+                <h3>Staffs per Page</h3>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Max Staff per Register Table</label>
+                    <input type="number" id="s-perpage" value="15" min="5" max="30">
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">Data Management</span></div>
+            <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-secondary" onclick="exportData()">Export Data (JSON)</button>
+              <button class="btn btn-secondary" onclick="exportDataExcel()">Export Data (Excel)</button>
+              <label class="btn btn-secondary" style="cursor:pointer;">
+                Import Data
+                <input type="file" accept=".json" hidden onchange="importData(event)">
+              </label>
+              <button class="btn btn-danger" onclick="clearAllData()">Clear All Data</button>
+              <button class="btn btn-secondary" onclick="restoreSeedData()">↻ Restore Default Staff List</button>
+              <button class="btn btn-secondary" onclick="saveCurrentAsDefault()">💾 Save Current Data as Default</button>
+            </div>
+            <div class="card-body" style="padding-top:0;">
+              <div id="default-data-status" style="font-size:12px;color:var(--fg-3);"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">Sync Diagnostics</span></div>
+            <div class="card-body">
+              <div id="sync-debug-info" style="font-size:12px;color:var(--fg-3);line-height:1.6;"></div>
+              <div style="font-size:11px;color:var(--fg-3);margin-top:8px;">If syncing seems wrong across devices, compare this panel on each device — especially "App build". If it differs, that device is running an older cached copy and needs a hard refresh (not just a normal reload).</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- .content -->
+  </div><!-- .main -->
+</div><!-- .app-shell -->
+</div><!-- #app-screen -->
+
+<!-- ===== STAFF MODAL ===== -->
+<div class="overlay" id="staff-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="staff-modal-title">Add Staff Member</span>
+      <button class="btn btn-icon btn-secondary btn-sm" onclick="closeModal('staff-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-staff-id">
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Name in Malayalam *</label>
+          <input type="text" id="staff-name-mal" placeholder="e.g. ലിജി ആർ രാജ്" style="font-size:15px;">
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Name in English</label>
+          <input type="text" id="staff-name-eng" placeholder="e.g. Liji R Raj">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Trade / Post Abbreviation</label>
+          <input type="text" id="staff-trade" placeholder="e.g. MCEA, WL, FR, DM — leave blank if not applicable">
+        </div>
+        <div class="form-group">
+          <label>Assign to Shift *</label>
+          <select id="staff-shift-select"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Designation</label>
+          <input type="text" id="staff-desig" list="desig-list" placeholder="e.g. SI, JI, GI, SWP, DRESSER …" autocomplete="off">
+          <datalist id="desig-list">
+            <option value="PRL">Principal</option>
+            <option value="VP">Vice Principal</option>
+            <option value="GI(HG)">Group Instructor (HG)</option>
+            <option value="GI">Group Instructor</option>
+            <option value="SI">Senior Instructor</option>
+            <option value="JI">Junior Instructor</option>
+            <option value="WA">Workshop Attender</option>
+            <option value="DRSR">Dresser</option>
+            <option value="SWP">Sweeper</option>
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>PEN Number</label>
+          <input type="text" id="staff-pen" placeholder="e.g. 815231" inputmode="numeric">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Staff Type</label>
+          <select id="staff-type">
+            <option value="regular">Regular</option>
+            <option value="guest">Guest Instructor</option>
+            <option value="contract">Contract</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Casual Leave Availed</label>
+          <input type="number" id="staff-cl" value="0" min="0" max="30">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('staff-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStaff()">Save Staff</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SHIFT MODAL ===== -->
+<div class="overlay" id="shift-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="shift-modal-title">Add Shift</span>
+      <button class="btn btn-icon btn-secondary btn-sm" onclick="closeModal('shift-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-shift-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Shift Name *</label>
+          <input type="text" id="shift-name" placeholder="e.g. SHIFT – I">
+        </div>
+        <div class="form-group">
+          <label>Category Label</label>
+          <input type="text" id="shift-category" placeholder="e.g. Guest Instructor, Technical">
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Category in Malayalam (optional)</label>
+          <input type="text" id="shift-mal-cat" placeholder="e.g. ഗസ്റ്റ് ഇൻസ്ട്രക്ടർ" style="font-size:14px;">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('shift-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveShift()">Save Shift</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONFIRM / ALERT MODAL (replaces native confirm()/alert(), which the
+     artifact viewer suppresses and never shows) ===== -->
+<div class="overlay" id="confirm-modal" hidden>
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title" id="confirm-modal-title">Confirm</span>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-modal-msg" style="white-space:pre-line;font-size:14px;line-height:1.6;"></p>
+      <div id="confirm-modal-typebox" hidden style="margin-top:10px;">
+        <label style="display:block;font-size:12px;color:var(--fg-2);margin-bottom:5px;">Type <strong id="confirm-modal-typeword-label"></strong> to confirm:</label>
+        <input type="text" id="confirm-modal-typeword" autocomplete="off" style="width:100%;" oninput="_confirmModalCheckTypeword()" onkeydown="if(event.key==='Enter'){event.preventDefault();_confirmModalAnswer(true);}">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="confirm-modal-cancel" onclick="_confirmModalAnswer(false)">Cancel</button>
+      <button class="btn btn-primary" id="confirm-modal-ok" onclick="_confirmModalAnswer(true)">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Print root (hidden normally, shown during print) -->
+<div class="print-root" id="print-root"></div>
+
+<script>
+// ===== DATA STORE =====
+let db = {
+  staff: [],
+  shifts: [],
+  holidays: {}, // { "2026-10-02": "HOLIDAY", "2026-10-05": "SUNDAY" }
+  settings: {
+    govtheader: 'GOVT OF KERALA',
+    dept: 'INDUSTRIAL TRAINING DEPARTMENT',
+    instname: 'GOVERNMENT INTERNATIONAL ITI',
+    loc: 'DHANUVACHAPURAM',
+    mal: 'ഹാജർ പുസ്തകം',
+    sec: 'സാങ്കേതിക വിഭാഗം',
+    fnheight: 6, anheight: 6, perpage: 15,
+    showPen: false, rightOffsetMm: 0 // last-used Generate panel options, remembered across visits
+  },
+  // A saved snapshot of staff/shifts/holidays that "Restore Default Staff List" and the
+  // first-run auto-seed use instead of the built-in sample data, once an admin saves one
+  // via "Save Current Data as Default" in Settings. null until then. Synced across every
+  // device like the rest of db (see pushSharedData()), so it's the same for every instructor.
+  defaultData: null
+};
+
+let nextStaffId = 1;
+let nextShiftId = 1;
+let printOption = 'both';
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_MAL = ['ജനുവരി','ഫെബ്രുവരി','മാർച്ച്','ഏപ്രിൽ','മേയ്','ജൂൺ','ജൂലൈ','ഓഗസ്റ്റ്','സെപ്റ്റംബർ','ഒക്ടോബർ','നവംബർ','ഡിസംബർ'];
+
+// Designation sort order: PRL > VP > GI (HG) > GI > SI > JI > WA > DRSR > SWP > blank/guest/other
+// (anything not found in this list — including a blank designation or a guest — sorts to the
+// end; see sortStaffByDesig/buildPrintHtml's "indexOf === -1 ? 99" handling. No guessing: a
+// staff member with no designation set simply isn't placed anywhere in this ranking.)
+const DESIG_ORDER = ['PRL','VP','GI(HG)','GI','SI','JI','WA','DRSR','SWP'];
+// Full designation names, used for the gray group-heading row in the printed
+// register (the short codes above stay as-is everywhere else -- badges next
+// to a name, the Trade/Post column, Excel export -- since those are tight on
+// space; only the heading row, which has a full table width to itself, spells
+// the designation out).
+const DESIG_FULL_NAME = {
+  'PRL': 'Principal',
+  'VP': 'Vice Principal',
+  'GI(HG)': 'Group Instructor (Higher Grade)',
+  'GI': 'Group Instructor',
+  'SI': 'Senior Instructor',
+  'JI': 'Junior Instructor',
+  'WA': 'Workshop Attenders',
+  'DRSR': 'Dresser',
+  'SWP': 'Sweeper'
+};
+function getDesig(st) {
+  if (st.type === 'guest') return 'GUEST';
+  return st.desig || '';
+}
+
+// Designation is an OPTIONAL field (a guest instructor, for instance, often has none
+// to give) — so display must never guess one. getDesig()'s keyword-matching fallback
+// chain (defaulting to e.g. "SI" when desig is blank) exists only for SORT ORDER
+// (sortStaffByDesig, and the per-shift sort in buildPrintHtml), so ungrouped staff still
+// land in a sensible position in lists. These two helpers are what every DISPLAY site
+// (staff table, printed register) should call instead of getDesig() directly, so a
+// staff member left blank shows nothing rather than a misleading guessed designation:
+//   - nameDesigLabel: what to show in the staff table's own Designation column. Empty for guests.
+//   - tradeColumnLabel: what to show in the Trade/Post column/cell — always just the stored
+//     trade value (the printed register's designation heading rows cover designation on
+//     their own, so this never falls back to showing a designation here).
+function nameDesigLabel(st) {
+  if (st.type === 'guest') return '';
+  return st.desig || '';
+}
+function tradeColumnLabel(st) {
+  return st.trade || '';
+}
+
+// Printed-register-only feature: a small gray heading row inserted above each
+// designation group once staff are in designation order, so the grouping is
+// visible on the page itself. Guest instructors (and anyone with truly no
+// designation) don't get one -- there's nothing meaningful to label.
+const DESIG_HEADER_SKIP = new Set(['GUEST', '']);
+
+// Turns a (already designation-sorted) staff list for one shift into a flat
+// list of print items: a {type:'header'} entry wherever a new, label-worthy
+// designation group begins, and a {type:'staff'} entry per staff member with
+// a precomputed sequential "#" (num) that ignores header rows.
+function groupStaffForPrint(staffInShift) {
+  const items = [];
+  let prevKey = null;
+  let num = 0;
+  staffInShift.forEach(staff => {
+    const key = getDesig(staff);
+    if (key !== prevKey) {
+      if (!DESIG_HEADER_SKIP.has(key)) items.push({ type: 'header', label: key });
+      num = 0; // # restarts at 1 for each designation, header shown or not
+    }
+    prevKey = key;
+    num++;
+    items.push({ type: 'staff', staff, num });
+  });
+  return items;
+}
+
+// Manual-entry blank rows: printed-only placeholder staff rows appended after
+// a designation group's real staff, so a new joiner can be handwritten into
+// the register mid-month without waiting for the app to be updated. Never
+// numbered (nothing is assigned to them yet), and only added for a group that
+// actually has at least one real staff member this month -- an empty group
+// gets no heading in the first place, so there's nothing to pad after.
+//   - A fixed count for GI and WA (Group Instructor (Higher Grade) and
+//     everything else below Workshop Attenders get none).
+//   - SI and JI instead get however many rows are left on the LAST page
+//     their group lands on, so the next group always starts a fresh page.
+//     This depends on where the group falls on the page, so it's computed
+//     against a simulated pagination rather than a fixed number.
+const DESIG_FIXED_BLANK_ROWS = { 'GI': 1, 'WA': 2 };
+const DESIG_FILL_PAGE_BLANK = new Set(['SI', 'JI']);
+
+function makeBlankPrintRow(desigKey) {
+  return { type: 'staff', num: '', isBlank: true, staff: { nameMal: '', nameEng: '', trade: '', pen: '', cl: 0, desig: desigKey } };
+}
+
+// Inserts `count` blank rows right after the last REAL (non-blank) staff item
+// of designation `desigKey` in `items` -- i.e. before that group's next
+// heading, or the end of the list. No-ops if the group has no real staff
+// this month, or count is 0.
+function insertBlankRowsAfterGroup(items, desigKey, count) {
+  if (count <= 0) return items;
+  let lastIdx = -1;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (it.type === 'staff' && !it.isBlank && getDesig(it.staff) === desigKey) lastIdx = i;
+  }
+  if (lastIdx === -1) return items;
+  const out = items.slice();
+  out.splice(lastIdx + 1, 0, ...Array.from({ length: count }, () => makeBlankPrintRow(desigKey)));
+  return out;
+}
+
+// Replays chunkPrintItems' own packing loop (must stay in sync with it) just
+// far enough to answer: by the time `targetItem` is placed, how many staff
+// rows are already used on ITS page? That's the count at that exact moment,
+// not the eventual size of the whole chunk -- the page keeps filling with
+// whatever group comes next in the dry run, so the finished chunk's total
+// would overcount what's "used up to and including the target".
+function staffCountOnPageAtItem(items, perPage, targetItem) {
+  const cap = Math.max(perPage, 1);
+  let staffCount = 0;
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item.type === 'staff') {
+      if (staffCount >= cap) staffCount = 0; // new page
+      staffCount++;
+      if (item === targetItem) return staffCount;
+    } else if (staffCount >= cap) {
+      staffCount = 0; // header deferred to a fresh page
+    }
+  }
+  return null; // not found
+}
+
+// Builds the full print-items list for one shift: groupStaffForPrint's real
+// staff + headings, plus the manual-entry blank rows above. The two
+// page-filling groups are processed in DESIG_ORDER (SI before JI) and after
+// the fixed-count groups, so each one's "how many rows are left on this page"
+// is computed against a layout that already includes every group that prints
+// before it -- including any blank rows already inserted for an earlier group.
+function buildPrintItemsWithBlankRows(staffInShift, perPage) {
+  let items = groupStaffForPrint(staffInShift);
+
+  Object.keys(DESIG_FIXED_BLANK_ROWS).forEach(key => {
+    items = insertBlankRowsAfterGroup(items, key, DESIG_FIXED_BLANK_ROWS[key]);
+  });
+
+  const cap = Math.max(perPage, 1);
+  DESIG_ORDER.filter(key => DESIG_FILL_PAGE_BLANK.has(key)).forEach(key => {
+    let lastItem = null;
+    items.forEach(it => { if (it.type === 'staff' && !it.isBlank && getDesig(it.staff) === key) lastItem = it; });
+    if (!lastItem) return;
+    const staffCountOnPage = staffCountOnPageAtItem(items, perPage, lastItem);
+    if (staffCountOnPage === null) return;
+    items = insertBlankRowsAfterGroup(items, key, cap - staffCountOnPage);
+  });
+
+  // Whatever designation happens to end the register -- often one that gets
+  // no blank rows of its own (Dresser, Sweeper...) -- can still leave its
+  // page with unused space below it, since nothing after it is left to pad
+  // a page out. Top that last page up to the same Max Staff per Register
+  // Table limit with plain, unlabeled blank rows, so no page goes to print
+  // part-empty when there's room for more staff to be written in.
+  const lastItem = items[items.length - 1];
+  if (lastItem && lastItem.type === 'staff') {
+    const lastPageCount = staffCountOnPageAtItem(items, perPage, lastItem);
+    if (lastPageCount !== null && cap - lastPageCount > 0) {
+      items = items.concat(Array.from({ length: cap - lastPageCount }, () => makeBlankPrintRow('')));
+    }
+  }
+
+  return items;
+}
+
+// Packs print items onto pages so that "Max Staff per Register Table"
+// (perPage) counts STAFF ROWS ONLY -- a gray heading row is free and never
+// counted against that limit, so a page with several designation changes
+// still gets the full perPage staff on it, not fewer. The one rule that
+// overrides packing a header in immediately: a heading row is never left as
+// the very last row of a page with none of its group's staff following it
+// there -- if the page's staff quota is already full, the heading (and its
+// whole group) is deferred to the top of the next page instead.
+function chunkPrintItems(items, perPage) {
+  const cap = Math.max(perPage, 1);
+  const chunks = [];
+  let current = [];
+  let staffCount = 0;
+  let i = 0;
+  while (i < items.length) {
+    const item = items[i];
+    if (item.type === 'staff') {
+      if (staffCount >= cap) {
+        chunks.push(current);
+        current = [];
+        staffCount = 0;
+      }
+      current.push(item);
+      staffCount++;
+      i++;
+    } else {
+      // Header: free, but don't let it dangle as the last row of a page
+      // that's already at its staff quota -- close the page first (without
+      // consuming this header) so it starts fresh on the next one.
+      if (staffCount >= cap) {
+        chunks.push(current);
+        current = [];
+        staffCount = 0;
+        continue; // re-evaluate this same header against the fresh page
+      }
+      current.push(item);
+      i++;
+    }
+  }
+  if (current.length) chunks.push(current);
+  return chunks;
+}
+
+// ITI emblem for the print register's cover page, embedded so the generated
+// file is fully self-contained (no external image reference).
+const ITI_LOGO_DATA_URI = 'data:image/png;base64,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NGbMGAnHUu4g3HDDDbR+/frQOTz//POh89qzZw9dd911Eo4VV199NRUWFpa7PNEQt1F/8MEH1LBhQ2/NwM+YeuJBBX799depffv23lo47HwQ9u+v26HM/Px8CdsIOl5QOez1li1b0uLFi721YKSmptL27egGDIedT9AxVHQ9EvznGi1tWfkFxd988800fPhwby0Y2E/Fhq7XrFmTli5dKmE/UP60tDRvLbwMmqdeO92Ga4gKr8B2TaOw84kHe2XUy5cvp7/97W+0atUqateuHbVu3Zo+//xz2aYF+uWXX+jcc8+lZs2a0XvvvUfvvPOOpAXGjh1LK1eulLACyt+2bZuEse95550n8uKLL0rc6NGjRSHXXHONsAf2f/XVV4U5wBiXXXaZxD300EP0zTd4uGJu/6NGjZLKhO0or8Jv1H7lA7hguNVqHO4AKBuO06VLF4l/++235Q7SoUMHGjdunKRDPFygm266SdZXrFgh54zjoyzQw1dfmemdgQkTJtAPP/wg4dtuu02WgwcPptNOOy2Qaf/85z/T7373Oxo2zHydCTrZsWOHhG3AqEeMMLN3Pffcc6Kvl156if74xz9S79695a6n+a5bt4569OhBnTp1onnz5kkcylyjRg3R3Y033khff/21XPu///3vsn3QoEFS8W+55Ra6/vrrJQ7HzMvLk3w1b9125513yjXEfojTyoJjd+vWTcqlx/YbeizYK6OGK3LggQeKO/H999/T/PnzpbAwJuDpp5+WdSjy559/pq5du9L5558vFx446aST6LPPPpOw4tBDDxUjxK0J+0KByA/7bNiwgV5++WWJf+yxx+ipp56StKhYt956q8TjQoPFoRxUBCgUF33KlCn06aef0oMPPijpfvoJH1wPZmq9CLrEBUOeun766afTtGnTJJ+RI0dKfMeOHaVs0A/Os379+pIWBoN0wCeffEJ16tSRY3733Xdy4bANYeDMM8+UOxlwwAEH0LHHHksLFiwQv/+UU06hNm3ayDZUeuyHirp69WrRM46HOLQl/LCNesiQIeI+/uUvf5GKCd1gPxACzgPh999/X67XxRdfTB999BG98cYbVKtWLZo5c6bofO3atRLfqFEjyRPXHRV/4cKF9OSTT0oc8kHZbCAOgAuK8COPPCL55eTk0Jdffhk69saNG8WmQBLlwV4ZNU6sdu3aElbgIl9x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';
+
+// ===== LOAD/SAVE =====
+// Bump this on every published change to the sync/data logic specifically. Shown in Settings so
+// that when sync is being debugged across devices, it's possible to directly confirm whether a
+// given browser is actually running the latest published code, instead of guessing from symptoms
+// alone (a stale cached copy would behave according to OLD logic no matter what's been fixed since).
+const APP_BUILD = 'sync-fix-38';
+const DATA_VERSION = 4; // bump to force reseed
+function loadData() {
+  try {
+    const saved = localStorage.getItem('iti-attendance-db');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // If saved data is from an older version, wipe it so seed runs fresh
+      if ((parsed.version || 0) < DATA_VERSION) {
+        localStorage.removeItem('iti-attendance-db');
+        return;
+      }
+      db = { ...db, ...parsed };
+      nextStaffId = db.staff.length ? Math.max(...db.staff.map(s => s.id)) + 1 : 1;
+      nextShiftId = db.shifts.length ? Math.max(...db.shifts.map(s => s.id)) + 1 : 1;
+      // Deliberately NOT restoring localUpdatedAt from storage here (an earlier version of this
+      // code did). Different devices have different, unsynchronized clocks -- comparing a
+      // timestamp saved on THIS device against one from shared storage that may have come from
+      // a DIFFERENT device is not reliable, and got this exact feature wrong: a device with an
+      // old, unrelated local save could out-rank a genuinely newer edit from another device and
+      // (worse) push its own stale copy back over the correct shared one. So every fresh page
+      // load always trusts shared storage unconditionally once it's reachable (see
+      // applyRemoteData) -- it's the one copy every device agrees on. localUpdatedAt is kept
+      // in-memory only, reset to 0 on each load, and used ONLY to protect a save made earlier
+      // in THIS SAME browser tab's session from a late-arriving stale echo (safe, because that
+      // comparison never crosses devices or clocks).
+    }
+  } catch(e) {}
+}
+function saveData() {
+  localUpdatedAt = Date.now(); // mark local state as "newer than anything we've seen" BEFORE any async work starts
+  try { localStorage.setItem('iti-attendance-db', JSON.stringify(db)); } catch(e) {}
+  pushSharedData(); // keeps every device/instructor that opens this link in sync; see setSyncStatus for visibility into whether this finishes before the tab closes
+}
+
+// ===== SHARED STORAGE (syncs the same data across every device/browser this link is opened on) =====
+// ===== FIREBASE SYNC =====
+// Each instructor has their own private data at: users/{userId}/attendance/main
+// This replaces the Claude Artifact "db" capability that was here before.
+
+let firestoreDocRef = null;      // Reference to this user's Firestore document
+let suppressNextSnapshot = false; // true right after our own write, so we don't echo-process it
+let localUpdatedAt = 0;           // in-memory timestamp of most recent local edit (NOT persisted)
+let sharedReadyAtLeastOnce = false; // true once first remote data has been applied
+let pendingPushCount = 0;         // number of pushSharedData() calls in flight
+
+// Visible sync status indicator in the topbar
+function setSyncStatus(state) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const map = {
+    connecting: ['🔄 Connecting…',   'Connecting to Firestore.'],
+    saving:     ['⏳ Saving…',        'Sending your change to Firestore — stay on this page until this finishes.'],
+    synced:     ['🔗 Synced',         'Your changes are saved to Firestore and visible on every device you sign in to.'],
+    localonly:  ['⚠️ Local only',     'No permission to sync — changes saved on this device only.'],
+    error:      ['⚠️ Sync failed',    'The last save could not reach Firestore. Try again.'],
+    offline:    ['💾 Offline',        'Firestore is not reachable — changes are saved on this device only.']
+  };
+  const [text, title] = map[state] || ['—', ''];
+  el.textContent = text;
+  el.title = title;
+}
+
+function ensureSeededIfEmpty() {
+  if (!db.shifts.length && !db.staff.length) seedDefaultData();
+}
+
+// Called once per login (from onAuthStateChanged) to connect to Firestore
+// and keep this device in sync with the user's own data.
+async function initFirestoreSync(user) {
+  if (!user) return;
+  try {
+    setSyncStatus('connecting');
+    firestoreDocRef = fbDb.doc('users/' + user.uid + '/attendance/main');
+
+    // First load: get the current value immediately
+    const snap = await firestoreDocRef.get();
+    if (snap && snap.exists) {
+      applyRemoteData(snap.data(), { force: true });
+      toast('🔗 Loaded your attendance data.');
+    } else if (!db.shifts.length && !db.staff.length) {
+      // No data in Firestore yet for this user — seed defaults and push them
+      seedDefaultData();
+      toast('🔗 Connected — your data will sync to every device you sign in to.');
+    } else {
+      // Local data exists but Firestore is empty (e.g. first login on this browser)
+      await pushSharedData();
+      toast('🔗 Connected — your data will sync to every device you sign in to.');
+    }
+    setSyncStatus('synced');
+
+    // Subscribe to real-time updates (reflects changes made from another device/tab)
+    suppressNextSnapshot = true;
+    firestoreDocRef.onSnapshot(snap => {
+      try {
+        if (suppressNextSnapshot) { suppressNextSnapshot = false; return; }
+        if (!snap || !snap.exists) return;
+        applyRemoteData(snap.data());
+        setSyncStatus('synced');
+      } catch(e) { console.warn('Could not apply incoming sync update:', e); }
+    }, err => {
+      console.warn('Firestore listener stopped:', err);
+      setSyncStatus('error');
+    });
+  } catch(e) {
+    console.warn('Firestore unavailable, using local storage only:', e);
+    ensureSeededIfEmpty();
+    setSyncStatus('offline');
+  }
+}
+
+// Warn before leaving if a save is still in flight
+window.addEventListener('beforeunload', (e) => {
+  if (pendingPushCount > 0) {
+    e.preventDefault();
+    e.returnValue = 'A change is still syncing. Leaving now may mean it never reaches other devices.';
+    return e.returnValue;
+  }
+});
+
+// Apply data that arrived from Firestore (initial fetch or real-time update)
+function applyRemoteData(remote, opts) {
+  if (!remote) return;
+  // Guard against a late stale-echo overwriting a save made earlier in this tab
+  const force = !!(opts && opts.force);
+  if (!force && typeof remote.updatedAt === 'number' && remote.updatedAt < localUpdatedAt) return;
+  if (typeof remote.updatedAt === 'number') localUpdatedAt = remote.updatedAt;
+  const wasSynced = sharedReadyAtLeastOnce;
+  sharedReadyAtLeastOnce = true;
+  const cloned = JSON.parse(JSON.stringify(remote));
+  db = { ...db, ...cloned };
+  nextStaffId = db.staff.length ? Math.max(...db.staff.map(s => s.id)) + 1 : 1;
+  nextShiftId = db.shifts.length ? Math.max(...db.shifts.map(s => s.id)) + 1 : 1;
+  try { localStorage.setItem('iti-attendance-db', JSON.stringify(db)); } catch(e) {}
+  refreshDashboard();
+  renderStaffTable();
+  renderShiftTable();
+  renderHolidayGrid();
+  if (wasSynced) toast('🔄 Synced latest changes from another device/tab.');
+}
+
+// Push the current db to this user's Firestore document
+async function pushSharedData() {
+  if (!firestoreDocRef) { setSyncStatus('offline'); return; }
+  pendingPushCount++;
+  setSyncStatus('saving');
+  try {
+    suppressNextSnapshot = true;
+    await firestoreDocRef.set({
+      staff: db.staff,
+      shifts: db.shifts,
+      holidays: db.holidays,
+      settings: db.settings,
+      defaultData: db.defaultData || null,
+      version: db.version || DATA_VERSION,
+      updatedAt: localUpdatedAt || Date.now()
+    });
+    setSyncStatus('synced');
+  } catch(e) {
+    suppressNextSnapshot = false;
+    console.warn('Firestore write failed:', e);
+    setSyncStatus('error');
+  } finally {
+    pendingPushCount--;
+  }
+}
+// ===== UI HELPERS =====
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  const titles = {dashboard:'Dashboard', staff:'Staff Management', shifts:'Shifts & Holidays', preview:'Generate Attendance Book', settings:'Settings'};
+  document.getElementById('page-title').textContent = titles[id] || id;
+  if (id === 'dashboard') refreshDashboard();
+  if (id === 'staff') renderStaffTable();
+  if (id === 'shifts') { renderShiftTable(); renderHolidayGrid(); }
+  if (id === 'preview') populateGenShifts();
+  if (id === 'settings') loadSettingsForm();
+}
+
+function toast(msg, dur=2800) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function openModal(id) { document.getElementById(id).hidden = false; }
+function closeModal(id) { document.getElementById(id).hidden = true; }
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const cm = document.getElementById('confirm-modal');
+  if (cm && !cm.hidden) { _confirmModalAnswer(false); return; }
+  document.querySelectorAll('.overlay:not([hidden])').forEach(m => m.hidden = true);
+});
+
+// ===== CONFIRM / ALERT =====
+// The Claude artifact viewer suppresses native confirm()/alert()/prompt() —
+// confirm() returns false instantly and no dialog is ever shown. These are
+// drop-in replacements backed by our own modal; both return a Promise, so
+// callers must `await` them.
+let _confirmModalResolve = null;
+let _confirmModalRequiredWord = null; // non-null while a "type X to confirm" gate is active
+function showConfirm(message, title) {
+  return new Promise(resolve => {
+    document.getElementById('confirm-modal-title').textContent = title || 'Please confirm';
+    document.getElementById('confirm-modal-msg').textContent = message;
+    document.getElementById('confirm-modal-cancel').hidden = false;
+    document.getElementById('confirm-modal-ok').textContent = 'OK';
+    document.getElementById('confirm-modal-ok').disabled = false;
+    document.getElementById('confirm-modal-typebox').hidden = true;
+    _confirmModalRequiredWord = null;
+    _confirmModalResolve = resolve;
+    document.getElementById('confirm-modal').hidden = false;
+  });
+}
+function showAlert(message, title) {
+  return new Promise(resolve => {
+    document.getElementById('confirm-modal-title').textContent = title || 'Notice';
+    document.getElementById('confirm-modal-msg').textContent = message;
+    document.getElementById('confirm-modal-cancel').hidden = true;
+    document.getElementById('confirm-modal-ok').textContent = 'OK';
+    document.getElementById('confirm-modal-ok').disabled = false;
+    document.getElementById('confirm-modal-typebox').hidden = true;
+    _confirmModalRequiredWord = null;
+    _confirmModalResolve = () => resolve();
+    document.getElementById('confirm-modal').hidden = false;
+  });
+}
+// A stricter confirm for destructive, unrecoverable actions (delete a shift, clear all data):
+// the OK button stays disabled until the viewer types the exact word, so it can't be clicked by habit.
+function showDangerConfirm(message, title, requiredWord) {
+  requiredWord = requiredWord || 'DELETE';
+  return new Promise(resolve => {
+    document.getElementById('confirm-modal-title').textContent = title || 'Please confirm';
+    document.getElementById('confirm-modal-msg').textContent = message;
+    document.getElementById('confirm-modal-cancel').hidden = false;
+    document.getElementById('confirm-modal-ok').textContent = 'OK';
+    document.getElementById('confirm-modal-ok').disabled = true;
+    document.getElementById('confirm-modal-typeword-label').textContent = requiredWord;
+    const input = document.getElementById('confirm-modal-typeword');
+    input.value = '';
+    document.getElementById('confirm-modal-typebox').hidden = false;
+    _confirmModalRequiredWord = requiredWord;
+    _confirmModalResolve = resolve;
+    document.getElementById('confirm-modal').hidden = false;
+    setTimeout(() => input.focus(), 50);
+  });
+}
+function _confirmModalCheckTypeword() {
+  const val = document.getElementById('confirm-modal-typeword').value.trim().toUpperCase();
+  const required = (_confirmModalRequiredWord || '').toUpperCase();
+  document.getElementById('confirm-modal-ok').disabled = (val !== required);
+}
+function _confirmModalAnswer(val) {
+  if (val && _confirmModalRequiredWord && document.getElementById('confirm-modal-ok').disabled) return; // safety net: can't confirm without the typed word
+  document.getElementById('confirm-modal').hidden = true;
+  document.getElementById('confirm-modal-cancel').hidden = false; // reset for next use
+  document.getElementById('confirm-modal-ok').disabled = false;
+  document.getElementById('confirm-modal-typebox').hidden = true;
+  _confirmModalRequiredWord = null;
+  const resolve = _confirmModalResolve;
+  _confirmModalResolve = null;
+  if (resolve) resolve(val);
+}
+
+// ===== DASHBOARD =====
+function refreshDashboard() {
+  document.getElementById('stat-staff').textContent = db.staff.length;
+  document.getElementById('stat-shifts').textContent = db.shifts.length;
+  const now = new Date();
+  document.getElementById('stat-month').textContent = MONTHS[now.getMonth()].slice(0,3);
+  document.getElementById('stat-year').textContent = now.getFullYear();
+  const perPage = db.settings.perpage || 15;
+  let totalPages = 0;
+  db.shifts.forEach(sh => {
+    const staffInShift = db.staff.filter(s => s.shiftId === sh.id);
+    totalPages += Math.ceil(staffInShift.length / perPage) * 2;
+  });
+  document.getElementById('stat-pages').textContent = totalPages || '—';
+
+  const summary = document.getElementById('dash-shift-summary');
+  if (!db.shifts.length) {
+    summary.innerHTML = '<p style="color:var(--fg-3);font-size:13px;">No shifts configured yet.</p>';
+    return;
+  }
+  summary.innerHTML = db.shifts.map(sh => {
+    const count = db.staff.filter(s => s.shiftId === sh.id).length;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border-light);">
+      <div><strong style="font-size:13px;">${sh.name}</strong><span style="font-size:11px;color:var(--fg-3);margin-left:8px;">${sh.category||''}</span></div>
+      <span class="badge badge-blue">${count} staff</span>
+    </div>`;
+  }).join('');
+}
+
+// ===== STAFF =====
+function openStaffModal(id) {
+  document.getElementById('edit-staff-id').value = id || '';
+  document.getElementById('staff-modal-title').textContent = id ? 'Edit Staff Member' : 'Add Staff Member';
+  const shiftSel = document.getElementById('staff-shift-select');
+  shiftSel.innerHTML = db.shifts.map(sh => `<option value="${sh.id}">${sh.name}</option>`).join('');
+  if (!db.shifts.length) shiftSel.innerHTML = '<option value="">No shifts yet</option>';
+
+  if (id) {
+    const s = db.staff.find(x => x.id === id);
+    if (s) {
+      document.getElementById('staff-name-mal').value = s.nameMal || '';
+      document.getElementById('staff-name-eng').value = s.nameEng || '';
+      document.getElementById('staff-trade').value = s.trade || '';
+      document.getElementById('staff-shift-select').value = s.shiftId || '';
+      document.getElementById('staff-type').value = s.type || 'regular';
+      document.getElementById('staff-cl').value = s.cl || 0;
+      document.getElementById('staff-desig').value = s.desig || '';
+      document.getElementById('staff-pen').value = s.pen || '';
+    }
+  } else {
+    document.getElementById('staff-name-mal').value = '';
+    document.getElementById('staff-name-eng').value = '';
+    document.getElementById('staff-trade').value = '';
+    document.getElementById('staff-cl').value = 0;
+    document.getElementById('staff-type').value = 'regular';
+    document.getElementById('staff-desig').value = '';
+    document.getElementById('staff-pen').value = '';
+  }
+  openModal('staff-modal');
+  setTimeout(() => document.getElementById('staff-name-mal').focus(), 50);
+}
+
+async function saveStaff() {
+  const nameMal = document.getElementById('staff-name-mal').value.trim();
+  const trade = document.getElementById('staff-trade').value.trim();
+  const shiftId = parseInt(document.getElementById('staff-shift-select').value);
+  const editId = parseInt(document.getElementById('edit-staff-id').value);
+  const desigRaw = document.getElementById('staff-desig').value.trim().toUpperCase();
+  const penRaw = document.getElementById('staff-pen').value.trim();
+  if (!nameMal) { await showAlert('Please enter staff name (Malayalam).'); return; }
+  // Designation is optional — e.g. a guest instructor often has no designation to give,
+  // and getDesig()'s fallback chain / the 'GUEST' type-check still handle a blank value sensibly.
+  if (!shiftId) { await showAlert('Please assign a shift.'); return; }
+
+  const staffData = {
+    nameMal, trade, shiftId,
+    nameEng: document.getElementById('staff-name-eng').value.trim(),
+    type: document.getElementById('staff-type').value,
+    cl: parseInt(document.getElementById('staff-cl').value) || 0,
+    // Always set desig/pen explicitly (even to '') so clearing the field in the form actually
+    // clears it on save — the old conditional-spread version silently kept the previous value
+    // whenever the input was emptied, since an empty string never entered staffData at all.
+    desig: desigRaw,
+    pen: penRaw
+  };
+
+  if (editId) {
+    const idx = db.staff.findIndex(s => s.id === editId);
+    if (idx === -1) {
+      // Don't silently no-op and still say "updated" — that's the kind of failure that looks like
+      // nothing happened. Surface it so it's obvious instead of mysterious.
+      await showAlert('Could not find this staff member to update (they may have just been deleted or moved elsewhere). Please close this and try again.', 'Update failed');
+      return;
+    }
+    db.staff = db.staff.map((s, i) => i === idx ? { ...s, ...staffData } : s);
+  } else {
+    db.staff = [...db.staff, { id: nextStaffId++, ...staffData }];
+  }
+  saveData();
+  closeModal('staff-modal');
+  renderStaffTable();
+  toast(editId ? 'Staff updated.' : 'Staff added.');
+}
+
+async function deleteStaff(id) {
+  if (!(await showConfirm('Delete this staff member?'))) return;
+  db.staff = db.staff.filter(s => s.id !== id);
+  saveData(); renderStaffTable(); toast('Staff removed.');
+}
+
+function moveStaff(id, dir) {
+  const idx = db.staff.findIndex(s => s.id === id);
+  const swap = idx + dir;
+  if (idx === -1 || swap < 0 || swap >= db.staff.length) return;
+  const arr = db.staff.slice(); // work on a fresh array/copy, never mutate the existing one in place
+  [arr[idx], arr[swap]] = [arr[swap], arr[idx]];
+  db.staff = arr;
+  saveData(); renderStaffTable();
+}
+
+function renderStaffTable() {
+  const tbody = document.getElementById('staff-table-body');
+  if (!db.staff.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--fg-3);padding:20px;">No staff added yet.</td></tr>';
+    return;
+  }
+  const typeLabel = {regular:'Regular', guest:'Guest', contract:'Contract'};
+  tbody.innerHTML = db.staff.map((s, i) => {
+    const shift = db.shifts.find(sh => sh.id === s.shiftId);
+    const desig = nameDesigLabel(s);
+    const desigCell = desig
+      ? `<span class="badge badge-blue" style="font-family:'IBM Plex Mono',monospace;font-size:10px;">${desig}</span>`
+      : '<span style="color:var(--fg-3)">—</span>';
+    const penCell = s.pen
+      ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--fg-2);">${s.pen}</span>`
+      : '<span style="color:var(--fg-3)">—</span>';
+    const tradeCellVal = tradeColumnLabel(s);
+    const tradeCell = tradeCellVal
+      ? `<span class="badge badge-blue">${tradeCellVal}</span>`
+      : '<span style="color:var(--fg-3)">—</span>';
+    return `<tr>
+      <td style="font-variant-numeric:tabular-nums;color:var(--fg-3)">${i+1}</td>
+      <td style="font-size:13px;">${s.nameMal}</td>
+      <td style="font-size:12px;color:var(--fg-2);">${s.nameEng || '—'}</td>
+      <td>${desigCell}</td>
+      <td>${penCell}</td>
+      <td>${tradeCell}</td>
+      <td style="font-size:12px;">${shift ? shift.name : '<span style="color:var(--fg-3)">Unassigned</span>'}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-icon btn-secondary btn-sm" title="Move up" onclick="moveStaff(${s.id},-1)">↑</button>
+        <button class="btn btn-icon btn-secondary btn-sm" title="Move down" onclick="moveStaff(${s.id},1)">↓</button>
+        <button class="btn btn-sm btn-secondary" onclick="openStaffModal(${s.id})">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteStaff(${s.id})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function sortStaffByDesig() {
+  if (!(await showConfirm('Sort all staff into default designation order (PRL → VP → GI(HG) → GI → SI → JI → WA → DRSR → SWP), and alphabetically by Trade/Post within each designation?\n\nWithin the same designation and trade, shift order (Shift I then Shift II) is preserved.\n\nThis will reorder staff in the database.', 'Sort by Designation'))) return;
+  db.staff = db.staff.slice().sort((a, b) => {
+    const da = getDesig(a), db2 = getDesig(b);
+    const oa = DESIG_ORDER.indexOf(da), ob = DESIG_ORDER.indexOf(db2);
+    const ra = oa === -1 ? 99 : oa, rb = ob === -1 ? 99 : ob;
+    if (ra !== rb) return ra - rb;
+    // Within same designation, sort alphabetically by Trade/Post
+    const ta = (a.trade || '').localeCompare(b.trade || '', undefined, { sensitivity: 'base' });
+    if (ta !== 0) return ta;
+    // Within same desig + trade, sort by shiftId
+    if (a.shiftId !== b.shiftId) return a.shiftId - b.shiftId;
+    return 0;
+  });
+  saveData();
+  renderStaffTable();
+  toast('✅ Staff sorted by designation and trade.');
+}
+
+// ===== SHIFTS =====
+function openShiftModal(id) {
+  document.getElementById('edit-shift-id').value = id || '';
+  document.getElementById('shift-modal-title').textContent = id ? 'Edit Shift' : 'Add Shift';
+  if (id) {
+    const sh = db.shifts.find(x => x.id === id);
+    if (sh) {
+      document.getElementById('shift-name').value = sh.name || '';
+      document.getElementById('shift-category').value = sh.category || '';
+      document.getElementById('shift-mal-cat').value = sh.malCat || '';
+    }
+  } else {
+    const n = db.shifts.length + 1;
+    document.getElementById('shift-name').value = `SHIFT – ${['I','II','III','IV'][n-1]||n}`;
+    document.getElementById('shift-category').value = '';
+    document.getElementById('shift-mal-cat').value = '';
+  }
+  openModal('shift-modal');
+}
+
+async function saveShift() {
+  const name = document.getElementById('shift-name').value.trim();
+  if (!name) { await showAlert('Shift name is required.'); return; }
+  const editId = parseInt(document.getElementById('edit-shift-id').value);
+  const data = {
+    name,
+    category: document.getElementById('shift-category').value.trim(),
+    malCat: document.getElementById('shift-mal-cat').value.trim()
+  };
+  if (editId) {
+    const idx = db.shifts.findIndex(s => s.id === editId);
+    if (idx === -1) { await showAlert('Could not find this shift to update (it may have just been deleted elsewhere). Please close this and try again.', 'Update failed'); return; }
+    db.shifts = db.shifts.map((s, i) => i === idx ? { ...s, ...data } : s);
+  } else {
+    db.shifts = [...db.shifts, { id: nextShiftId++, ...data }];
+  }
+  saveData(); closeModal('shift-modal'); renderShiftTable(); toast(editId ? 'Shift updated.' : 'Shift added.');
+}
+
+async function deleteShift(id) {
+  const sh = db.shifts.find(s => s.id === id);
+  const cnt = db.staff.filter(s => s.shiftId === id).length;
+  const msg = `Delete "${sh ? sh.name : 'this shift'}"?${cnt ? ` ${cnt} staff member${cnt===1?'':'s'} assigned to it will become unassigned.` : ''}\n\nThis cannot be undone.`;
+  if (!(await showDangerConfirm(msg, 'Delete Shift', 'DELETE'))) return;
+  db.shifts = db.shifts.filter(s => s.id !== id);
+  db.staff = db.staff.map(s => s.shiftId === id ? {...s, shiftId: null} : s);
+  saveData(); renderShiftTable(); toast('Shift deleted.');
+}
+
+function renderShiftTable() {
+  const tbody = document.getElementById('shift-table-body');
+  if (!db.shifts.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg-3);padding:20px;">No shifts configured.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = db.shifts.map(sh => {
+    const cnt = db.staff.filter(s => s.shiftId === sh.id).length;
+    return `<tr>
+      <td><strong>${sh.name}</strong>${sh.malCat?`<br><span style="font-family:\'Noto Serif Malayalam\',serif;font-size:12px;color:var(--fg-3)">${sh.malCat}</span>`:''}</td>
+      <td>${sh.category||'—'}</td>
+      <td><span class="badge badge-blue">${cnt}</span></td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="openShiftModal(${sh.id})">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteShift(${sh.id})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== HOLIDAYS =====
+function renderHolidayGrid() {
+  const month = parseInt(document.getElementById('hol-month').value);
+  const year = parseInt(document.getElementById('hol-year').value);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const grid = document.getElementById('holiday-grid');
+
+  let html = '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayOfWeek = new Date(year, month, d).getDay(); // 0=Sun, 6=Sat
+    const val = db.holidays[key] || (dayOfWeek === 0 ? 'SUNDAY' : '');
+    const dayName = ['Su','Mo','Tu','We','Th','Fr','Sa'][dayOfWeek];
+    const isSun = dayOfWeek === 0;
+    const opts = ['', 'SUNDAY', 'HOLIDAY', 'SECOND SATURDAY'];
+    const cur = db.holidays[key] || '';
+
+    html += `<div style="text-align:center;">
+      <div style="font-size:10px;color:var(--fg-3);font-weight:600;">${d}</div>
+      <div style="font-size:9px;color:${isSun?'var(--accent-2)':'var(--fg-3)'};">${dayName}</div>
+      <select style="font-size:10px;padding:2px 2px;border-radius:3px;width:70px;text-align:center;" onchange="setHoliday('${key}',this.value)">
+        ${opts.map(o => `<option value="${o}" ${cur===o?'selected':''}>${o||'(work)'}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  html += '</div>';
+  grid.innerHTML = html;
+}
+
+function setHoliday(key, val) {
+  if (val) db.holidays[key] = val;
+  else delete db.holidays[key];
+  saveData();
+}
+
+function autoMarkHolidays() {
+  const month = parseInt(document.getElementById('hol-month').value);
+  const year = parseInt(document.getElementById('hol-year').value);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  let satCount = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(year, month, d).getDay();
+    if (dow === 0) db.holidays[key] = 'SUNDAY';
+    else if (dow === 6) {
+      satCount++;
+      if (satCount === 2) db.holidays[key] = 'SECOND SATURDAY';
+    }
+  }
+  saveData(); renderHolidayGrid();
+  toast('Sundays and 2nd Saturday marked!');
+}
+
+document.getElementById('hol-month').addEventListener('change', renderHolidayGrid);
+document.getElementById('hol-year').addEventListener('change', renderHolidayGrid);
+
+// ===== SETTINGS =====
+function loadSettingsForm() {
+  const s = db.settings;
+  document.getElementById('s-govtheader').value = s.govtheader || '';
+  document.getElementById('s-dept').value = s.dept || '';
+  document.getElementById('s-instname').value = s.instname || '';
+  document.getElementById('s-loc').value = s.loc || '';
+  document.getElementById('s-mal').value = s.mal || '';
+  document.getElementById('s-sec').value = s.sec || '';
+  document.getElementById('s-fnheight').value = s.fnheight || 6;
+  document.getElementById('s-anheight').value = s.anheight || 6;
+  document.getElementById('s-perpage').value = s.perpage || 15;
+  renderDefaultDataStatus();
+  renderSyncDebugInfo();
+}
+
+function saveSettings() {
+  db.settings = {
+    ...db.settings, // keep fields this form doesn't manage (e.g. the Generate panel's remembered options)
+    govtheader: document.getElementById('s-govtheader').value.trim(),
+    dept: document.getElementById('s-dept').value.trim(),
+    instname: document.getElementById('s-instname').value.trim(),
+    loc: document.getElementById('s-loc').value.trim(),
+    mal: document.getElementById('s-mal').value.trim(),
+    sec: document.getElementById('s-sec').value.trim(),
+    fnheight: parseFloat(document.getElementById('s-fnheight').value) || 6,
+    anheight: parseFloat(document.getElementById('s-anheight').value) || 6,
+    perpage: parseInt(document.getElementById('s-perpage').value) || 15
+  };
+  saveData(); toast('Settings saved!');
+}
+
+// ===== GENERATE =====
+function populateGenShifts() {
+  const sel = document.getElementById('gen-shift');
+  sel.innerHTML = `<option value="all">All Shifts</option>` + db.shifts.map(sh => `<option value="${sh.id}">${sh.name}</option>`).join('');
+  // Restore the last-used Generate panel options (saved via rememberGenOptions)
+  document.getElementById('opt-show-pen').checked = !!db.settings.showPen;
+  document.getElementById('opt-right-offset').value = (db.settings.rightOffsetMm != null) ? db.settings.rightOffsetMm : 0;
+}
+
+function rememberGenOptions() {
+  db.settings.showPen = document.getElementById('opt-show-pen').checked;
+  db.settings.rightOffsetMm = parseFloat(document.getElementById('opt-right-offset').value) || 0;
+  saveData();
+}
+
+function selectPrintOpt(val) {
+  printOption = val;
+  document.getElementById('opt-both').classList.toggle('selected', val==='both');
+  document.getElementById('opt-left').classList.toggle('selected', val==='left');
+}
+
+function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
+function dayOfWeek(year, month, day) { return new Date(year, month, day).getDay(); }
+
+function getHolidayLabel(year, month, day) {
+  const key = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  return db.holidays[key] || null;
+}
+
+function getHolidayAbbr(label) {
+  if (!label) return null;
+  if (label === 'SECOND SATURDAY') return '2ND SAT'; // shorter form for the printed register
+  return label; // SUNDAY, HOLIDAY, or any custom label as-is
+}
+
+// ===== BUILD PRINT HTML =====
+function buildPrintHtml(month, year, selectedShiftId, showPen = false, rightOffsetMm = 0) {
+  const s = db.settings;
+  const daysInMonth = getDaysInMonth(year, month);
+  const fnH = (s.fnheight || 6) + 'mm';
+  const anH = (s.anheight || 6) + 'mm';
+  const perPage = s.perpage || 15;
+  const monthName = MONTHS[month].toUpperCase();
+  const monthMal = MONTHS_MAL[month];
+
+  // Determine which shifts to generate
+  const shiftsToGen = selectedShiftId === 'all'
+    ? db.shifts
+    : db.shifts.filter(sh => sh.id === parseInt(selectedShiftId));
+
+  let html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Attendance Register ${monthName} ${year}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Malayalam:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:white;color:black;font-family:'IBM Plex Sans',Arial,sans-serif;font-size:7.5pt;}
+    .print-page{width:210mm;min-height:297mm;padding:7mm 15mm 7mm 5mm;page-break-after:always;background:white;position:relative;}/* left page: 15mm right gutter = binding spine */
+    .print-page.right-page{padding:7mm 7mm 7mm 15mm;}/* right page: 15mm left gutter = binding spine; 7mm right margin gives the Remarks column's right border real clearance from the printer's edge */
+    @page{size:A4;margin:0;}
+    @media print{body{margin:0;padding:0;}}
+    .reg-title{font-size:7pt;font-weight:700;text-align:center;margin-bottom:1.5mm;padding:1mm 2mm;border:0.5pt solid #333;text-transform:uppercase;letter-spacing:.03em;}
+    table.reg{width:100%;border-collapse:collapse;table-layout:fixed;}
+    table.reg th,table.reg td{border:1pt solid #000;text-align:center;vertical-align:middle;padding:0;overflow:hidden;font-size:6pt;line-height:1.1;}
+    table.reg th{font-weight:700;font-size:5.5pt;}
+    .cn{width:5mm;} .cname{width:59mm;text-align:left!important;padding-left:1mm!important;}
+    .ctrade{width:8.5mm;} .cfnlbl{width:5mm;} .cremark{width:13mm;}
+    .fnrow td,.anrow td{height:${fnH};}
+    .anrow td{height:${anH};}
+    .holcell{font-weight:700;font-size:3.5pt;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;color:#000;letter-spacing:.04em;padding:0;line-height:1.05;}
+    .namecell{font-size:11pt;font-family:'Noto Serif Malayalam',serif;text-align:left;padding:1mm 1mm;vertical-align:top;}
+    .daynumrow th{font-size:5.5pt;padding:.4mm;}
+    .daynumrow th.cday{font-size:7.5pt;}
+    .footer{margin-top:4mm;font-size:6pt;display:flex;justify-content:space-between;border-top:.5pt solid #000;padding-top:1.5mm;}
+    .gutter-note{position:absolute;right:4mm;top:50%;writing-mode:vertical-rl;transform:rotate(180deg) translateY(50%);font-size:5pt;color:#ccc;letter-spacing:.05em;}
+
+    /* ===== Cover page (one per shift) ===== */
+    .cover-page{padding:25mm 20mm;text-align:center;}
+    .cover-logo{margin-bottom:9mm;}
+    .cover-logo img{width:55mm;height:auto;}
+    .cover-govt,.cover-dept{font-family:Georgia,'Times New Roman',serif;font-size:15pt;line-height:1.5;}
+    .cover-org{font-family:Georgia,'Times New Roman',serif;font-size:26pt;font-weight:700;margin-top:3mm;}
+    .cover-loc{font-family:Georgia,'Times New Roman',serif;font-size:17pt;margin-top:1mm;}
+    .cover-mal-cat{font-family:'Noto Serif Malayalam',serif;font-size:33pt;margin-top:26mm;line-height:1.3;}
+    .cover-monthline{font-family:'Noto Serif Malayalam',serif;font-size:24pt;margin-top:4mm;}
+    .cover-monthline .yr{font-size:25pt;font-weight:700;font-family:'IBM Plex Sans',sans-serif;margin-left:2mm;}
+    .cover-shift{font-family:Georgia,'Times New Roman',serif;font-size:34pt;font-weight:700;letter-spacing:.04em;margin-top:28mm;}
+  </style></head><body>`;
+
+  // Shifts with at least one staff member -- an empty shift prints nothing,
+  // so it's filtered out up front rather than skipped mid-loop, which keeps
+  // the "is this the last shift printed" check below accurate.
+  const shiftsWithStaff = shiftsToGen.map(shift => {
+    const staffInShift = db.staff
+      .filter(s => s.shiftId === shift.id)
+      .sort((a, b) => {
+        const da = getDesig(a), db2 = getDesig(b);
+        const oa = DESIG_ORDER.indexOf(da), ob = DESIG_ORDER.indexOf(db2);
+        const ra = oa === -1 ? 99 : oa, rb = ob === -1 ? 99 : ob;
+        return ra - rb;
+      });
+    return { shift, staffInShift };
+  }).filter(x => x.staffInShift.length > 0);
+
+  shiftsWithStaff.forEach(({ shift, staffInShift }, shiftIdx) => {
+    const printItems = buildPrintItemsWithBlankRows(staffInShift, perPage);
+    const chunks = chunkPrintItems(printItems, perPage);
+
+    // Fixed day split: days 1-11 on the left page, the rest on the right page
+    const leftDays = Array.from({length: 11}, (_, i) => i + 1);
+    const rightDays = Array.from({length: daysInMonth - 11}, (_, i) => i + 12);
+
+    // One cover/title page per shift
+    html += buildCoverPage(shift, monthName, year, monthMal, s);
+    let pageCount = 1; // cover page counts as one side
+
+    chunks.forEach((chunkItems, chunkIdx) => {
+      // Left page (days 1-11)
+      html += buildRegisterPage(chunkItems, leftDays, month, year, shift, monthName, false, fnH, anH, s, chunkIdx, chunks.length, showPen, 0);
+      pageCount++;
+
+      // Right page (days 12–end) — only if not left-only
+      if (printOption !== 'left') {
+        html += buildRegisterPage(chunkItems, rightDays, month, year, shift, monthName, true, fnH, anH, s, chunkIdx, chunks.length, showPen, rightOffsetMm);
+        pageCount++;
+      }
+    });
+
+    // For continuous automatic double-sided printing, each shift's cover page
+    // must land on the front of a fresh sheet rather than the back of the
+    // previous shift's last page. Pad with one blank page whenever this
+    // shift printed an odd number of sides, so the running total stays even
+    // and the next shift's cover always starts a new sheet.
+    const isLastShift = shiftIdx === shiftsWithStaff.length - 1;
+    if (!isLastShift && pageCount % 2 !== 0) {
+      html += `<div class="print-page blank-page"></div>`;
+    }
+  });
+
+  html += '</body></html>';
+  return html;
+}
+
+function buildCoverPage(shift, monthName, year, monthMal, s) {
+  const malCat = shift.malCat || s.sec || '';
+  return `<div class="print-page cover-page">
+    <div class="cover-logo"><img src="${ITI_LOGO_DATA_URI}" alt="ITI Logo"></div>
+    <div class="cover-govt">${s.govtheader}</div>
+    <div class="cover-dept">${s.dept}</div>
+    <div class="cover-org">${s.instname}</div>
+    <div class="cover-loc">${s.loc}</div>
+    <div class="cover-mal-cat">${malCat}</div>
+    <div class="cover-monthline">${s.mal} – ${monthMal} <span class="yr">${year}</span></div>
+    <div class="cover-shift">${shift.name}</div>
+  </div>`;
+}
+
+function buildRegisterPage(chunkItems, days, month, year, shift, monthName, isRight, fnH, anH, s, chunkIdx, totalChunks, showPen = false, rightOffsetMm = 0) {
+  const pageClass = isRight ? 'print-page right-page' : 'print-page';
+  // The right page carries no header/cover content of its own, so a small
+  // adjustable offset lets it be nudged to line up with the left page once
+  // actually printed (compensates for printer/paper quirks).
+  const offsetStyle = (isRight && rightOffsetMm) ? ` style="padding-top:${(7 + parseFloat(rightOffsetMm)).toFixed(2)}mm;"` : '';
+  let html = `<div class="${pageClass}"${offsetStyle}>`;
+  if (!isRight) html += `<div class="gutter-note">BINDING SPINE</div>`;
+
+  const regTitle = shift.category
+    ? `Attendance Register of ${shift.category} Staff — ${monthName} ${year}`
+    : `Attendance Register of Technical Staff — ${monthName} ${year}`;
+  if (totalChunks > 1) html += `<div class="reg-title">${regTitle} (Page ${chunkIdx+1}/${totalChunks})</div>`;
+  else html += `<div class="reg-title">${regTitle}</div>`;
+
+  html += `<table class="reg">`;
+
+  // Day columns get whatever width is left over after the fixed columns
+  // spread evenly — so a page with fewer days gets wider, easier-to-sign
+  // boxes. The right page has no #/Name/Trade/FN-AN columns at all, just
+  // day columns + Remarks, so almost all of its width goes to day columns.
+  // Left page: 210mm width minus 15mm gutter + 5mm outer margin = 190mm usable.
+  // Right page: same 15mm gutter, but a 7mm outer margin (2mm more than the left
+  // page) so the Remarks column's right border has real clearance from the
+  // printer's edge instead of landing right at it.
+  const PAGE_USABLE_MM = isRight ? 188 : 190;
+  const FIXED_COLS_MM = isRight
+    ? 13 /*cremark*/
+    : 5 /*cn*/ + 59 /*cname*/ + 8.5 /*ctrade*/ + 5 /*cfnlbl*/;
+  const dayColW = ((PAGE_USABLE_MM - FIXED_COLS_MM) / days.length).toFixed(2) + 'mm';
+
+  // Header row 1: labels (left page only — right page is day columns + Remarks)
+  html += `<tr class="daynumrow">`;
+  if (!isRight) {
+    html += `<th class="cn">#</th>
+    <th class="cname">Name &amp; Designation</th>
+    <th class="ctrade">Trade/Post</th>
+    <th class="cfnlbl">FN/<br>AN</th>`;
+  }
+
+  days.forEach(d => {
+    html += `<th class="cday" style="width:${dayColW};">${d}</th>`;
+  });
+
+  if (isRight) html += `<th class="cremark">Remarks</th>`;
+  html += `</tr>`;
+
+  // Column count for the full-width gray designation-heading row.
+  const headerColspan = isRight ? (days.length + 1) : (4 + days.length);
+
+  // Staff rows (chunkItems may also contain gray designation-heading rows).
+  // The heading row above each group already states the designation once for
+  // everyone in it, so individual staff rows never repeat it next to the name.
+  chunkItems.forEach(item => {
+    if (item.type === 'header') {
+      const headerText = DESIG_FULL_NAME[item.label] || item.label;
+      html += `<tr class="desig-header-row"><td colspan="${headerColspan}" style="height:${fnH};font-weight:700;font-size:10.5pt;text-align:left;padding-left:1mm;letter-spacing:.04em;color:#000;border:1pt solid #000;">${headerText}</td></tr>`;
+      return;
+    }
+    const staff = item.staff;
+    // FN row
+    html += `<tr class="fnrow">`;
+    if (!isRight) {
+      html += `<td class="cn" rowspan="2" style="font-variant-numeric:tabular-nums;font-size:6pt;">${item.num}</td>`;
+      const penBadge = (showPen && staff.pen) ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:7pt;color:#777;letter-spacing:.04em;"> PEN:${staff.pen}</span>` : '';
+      html += `<td class="cname namecell" rowspan="2" style="font-family:'Noto Serif Malayalam',serif;font-size:11pt;">${staff.nameMal}${penBadge}${staff.nameEng?`<br><span style="font-family:'IBM Plex Sans',sans-serif;font-size:9pt;">${staff.nameEng}</span>`:''}</td>`;
+      html += `<td class="ctrade" rowspan="2" style="font-size:7.5pt;font-weight:600;">${tradeColumnLabel(staff)}${staff.cl > 0 ? `<br><span style="font-size:7.5pt;color:#777;">CL:${staff.cl}</span>` : ''}</td>`;
+      html += `<td class="cfnlbl" style="font-size:7pt;font-weight:700;">FN</td>`;
+    }
+    days.forEach(d => {
+      const hol = getHolidayLabel(year, month, d);
+      if (hol) {
+        html += `<td class="holcell" rowspan="2">${getHolidayAbbr(hol)}</td>`;
+      } else {
+        html += `<td style="height:${fnH};border-bottom:1pt solid #000;"></td>`;
+      }
+    });
+    if (isRight) html += `<td rowspan="2" class="cremark"></td>`;
+    html += `</tr>`;
+
+    // AN row
+    html += `<tr class="anrow">`;
+    if (!isRight) {
+      html += `<td class="cfnlbl" style="font-size:7pt;font-weight:700;">AN</td>`;
+    }
+    days.forEach(d => {
+      const hol = getHolidayLabel(year, month, d);
+      if (!hol) {
+        html += `<td style="height:${anH};border-top:1pt solid #000;"></td>`;
+      }
+      // Holiday cell already rowspan=2 from FN row
+    });
+    html += `</tr>`;
+  });
+
+  html += `</table>`;
+
+  // Footer
+  html += `<div class="footer">
+    <span>${s.instname}, ${s.loc} — ${shift.name} — ${monthName} ${year}</span>
+    <span>Signature of Officer In-Charge: ____________________________</span>
+  </div>`;
+
+  html += `</div>`;
+  return html;
+}
+
+// Builds the register HTML + a filename from the current Generate panel selections.
+// Shared by "Open Book", "Download Register" and anything else that needs the same output.
+// Returns null (after its own toast) if the current selection has nothing to generate.
+function buildGeneratedRegister() {
+  const month = parseInt(document.getElementById('gen-month').value);
+  const year = parseInt(document.getElementById('gen-year').value);
+  const shiftId = document.getElementById('gen-shift').value;
+  const showPen = document.getElementById('opt-show-pen').checked;
+  const rightOffsetMm = parseFloat(document.getElementById('opt-right-offset').value) || 0;
+  rememberGenOptions(); // belt-and-suspenders: whatever is actually used to generate is always saved
+
+  const shiftsToGen = shiftId === 'all'
+    ? db.shifts
+    : db.shifts.filter(sh => sh.id === parseInt(shiftId));
+
+  if (!shiftsToGen.length) { toast('No shifts to generate!'); return null; }
+  const staffCheck = shiftsToGen.some(sh => db.staff.some(s => s.shiftId === sh.id));
+  if (!staffCheck) { toast('No staff in selected shift(s)!'); return null; }
+
+  const printHtml = buildPrintHtml(month, year, shiftId, showPen, rightOffsetMm);
+
+  // Month name for filename
+  const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const shiftLabel = shiftId === 'all' ? 'All' : (db.shifts.find(s=>s.id===parseInt(shiftId))?.name||shiftId);
+  const filename = `Attendance_${shiftLabel}_${mNames[month]}_${year}.html`.replace(/[\s–]/g,'_');
+
+  return { printHtml, filename };
+}
+
+async function generateAndPrint(preview = false) {
+  const built = buildGeneratedRegister();
+  if (!built) return;
+  toast('Preparing file…');
+  await saveFile(built.filename, built.printHtml, '📥 Saved as ' + built.filename + ' — open it and press Ctrl+P / ⌘P to print.');
+}
+
+// Opens the register in a new browser tab instead of downloading it. Deliberately uses a plain
+// <a href target="_blank"> with NO `download` attribute: the Claude artifact viewer sandboxes
+// download-triggering links/scripts, but an ordinary link navigation (which this is) isn't a
+// download, so it opens like any other link — showing the register for viewing/printing directly.
+function openBookInNewTab() {
+  const built = buildGeneratedRegister();
+  if (!built) return;
+  try {
+    const blob = new Blob([built.printHtml], {type: 'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60000); // give the new tab time to finish loading first
+  } catch(e) {
+    console.warn('Could not open the register in a new tab:', e);
+    toast('❌ Could not open the register in a new tab. Try "Download Register" instead.');
+  }
+}
+
+// Standalone file-save helper — uses standard blob + <a download>.
+// (The Claude "downloads" capability has been removed; this runs outside the Artifact sandbox.)
+async function saveFile(filename, data, successMsg) {
+  try {
+    const blob = (data instanceof Blob)
+      ? data
+      : new Blob([data], { type: filename.endsWith('.json') ? 'application/json' : 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast(successMsg || '📥 File saved as ' + filename);
+    return true;
+  } catch(e) {
+    console.warn('saveFile failed:', e);
+    toast('❌ Could not save the file: ' + e.message);
+    return false;
+  }
+}
+
+// ===== DATA IMPORT/EXPORT =====
+async function exportData() {
+  const json = JSON.stringify(db, null, 2);
+  const filename = `iti-attendance-data-${Date.now()}.json`;
+  toast('Preparing export…');
+  await saveFile(filename, json, '📥 Saved as ' + filename + '.');
+}
+
+async function exportDataExcel() {
+  if (typeof XLSX === 'undefined') {
+    await showAlert('The Excel export library did not load (check your internet connection and try again). "Export Data (JSON)" still works as an alternative.', 'Excel export unavailable');
+    return;
+  }
+  toast('Preparing Excel file…');
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // Staff sheet
+    const staffRows = db.staff.map((s, i) => ({
+      '#': i + 1,
+      'Name (Malayalam)': s.nameMal || '',
+      'Name (English)': s.nameEng || '',
+      'Designation': s.desig || '',
+      'PEN Number': s.pen || '',
+      'Trade / Post': s.trade || '',
+      'Shift': (db.shifts.find(sh => sh.id === s.shiftId) || {}).name || 'Unassigned',
+      'Type': s.type || 'regular',
+      'Casual Leave Availed': s.cl || 0
+    }));
+    const wsStaff = XLSX.utils.json_to_sheet(staffRows.length ? staffRows : [{'#': '', 'Name (Malayalam)': '(no staff)'}]);
+    wsStaff['!cols'] = [{wch:4},{wch:28},{wch:22},{wch:12},{wch:12},{wch:14},{wch:18},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, wsStaff, 'Staff');
+
+    // Shifts sheet
+    const shiftRows = db.shifts.map(sh => ({
+      'ID': sh.id, 'Name': sh.name || '', 'Category': sh.category || '',
+      'Malayalam Category': sh.malCat || '',
+      'Staff Count': db.staff.filter(s => s.shiftId === sh.id).length
+    }));
+    const wsShifts = XLSX.utils.json_to_sheet(shiftRows.length ? shiftRows : [{'ID': '', 'Name': '(no shifts)'}]);
+    wsShifts['!cols'] = [{wch:6},{wch:18},{wch:14},{wch:10},{wch:10},{wch:22},{wch:12}];
+    XLSX.utils.book_append_sheet(wb, wsShifts, 'Shifts');
+
+    // Holidays sheet, sorted by date
+    const holidayRows = Object.keys(db.holidays).sort().map(key => ({ 'Date': key, 'Label': db.holidays[key] }));
+    const wsHolidays = XLSX.utils.json_to_sheet(holidayRows.length ? holidayRows : [{'Date': '', 'Label': '(no holidays set)'}]);
+    wsHolidays['!cols'] = [{wch:14},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, wsHolidays, 'Holidays');
+
+    // Settings sheet
+    const s = db.settings || {};
+    const settingsRows = [
+      {Setting:'Government Header', Value:s.govtheader||''},
+      {Setting:'Department', Value:s.dept||''},
+      {Setting:'Institution Name', Value:s.instname||''},
+      {Setting:'Location', Value:s.loc||''},
+      {Setting:'Malayalam Label', Value:s.mal||''},
+      {Setting:'Malayalam Section', Value:s.sec||''},
+      {Setting:'FN Row Height (mm)', Value:s.fnheight||''},
+      {Setting:'AN Row Height (mm)', Value:s.anheight||''},
+      {Setting:'Staff Per Page', Value:s.perpage||''},
+      {Setting:'Show PEN Number (Generate panel)', Value: s.showPen ? 'Yes' : 'No'},
+      {Setting:'Right Page Top Offset (mm)', Value:s.rightOffsetMm||0}
+    ];
+    const wsSettings = XLSX.utils.json_to_sheet(settingsRows);
+    wsSettings['!cols'] = [{wch:30},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, wsSettings, 'Settings');
+
+    const arrBuf = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([arrBuf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const filename = `iti-attendance-data-${Date.now()}.xlsx`;
+    await saveFile(filename, blob, '📥 Saved as ' + filename + '.');
+  } catch(e) {
+    console.warn('Excel export failed:', e);
+    await showAlert('Could not build the Excel file: ' + e.message, 'Export failed');
+  }
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async evt => {
+    try {
+      const parsed = JSON.parse(evt.target.result);
+      db = { ...db, ...parsed };
+      nextStaffId = db.staff.length ? Math.max(...db.staff.map(s => s.id)) + 1 : 1;
+      nextShiftId = db.shifts.length ? Math.max(...db.shifts.map(s => s.id)) + 1 : 1;
+      saveData(); refreshDashboard(); renderStaffTable(); toast('Data imported successfully!');
+    } catch(err) { await showAlert('Error importing data: ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+async function clearAllData() {
+  const msg = `Clear ALL staff, shifts and holiday data — for every device and instructor this link is shared with?\n\nThis cannot be undone. (The saved default dataset, if any, is kept — you can still use "Restore Default Staff List" afterwards.)`;
+  if (!(await showDangerConfirm(msg, 'Clear All Data', 'DELETE'))) return;
+  // Keep defaultData across a clear — losing the protected backstop along with everything
+  // else would defeat the whole point of saving one in the first place.
+  db = { staff: [], shifts: [], holidays: {}, settings: db.settings, defaultData: db.defaultData, version: DATA_VERSION };
+  nextStaffId = 1; nextShiftId = 1;
+  saveData(); refreshDashboard(); renderStaffTable();
+  toast('All data cleared.');
+}
+
+async function restoreSeedData() {
+  const hasCustomDefault = !!(db.defaultData && (db.defaultData.staff || []).length);
+  if (hasCustomDefault) {
+    const savedWhen = db.defaultData.savedAt ? new Date(db.defaultData.savedAt).toLocaleString() : 'earlier';
+    const includesSettings = !!db.defaultData.settings;
+    const settingsNote = includesSettings ? ', and settings' : '';
+    if (!(await showConfirm(`Restore the saved default dataset (saved ${savedWhen})?\n\nThis will REPLACE all current staff, shifts, holiday data${settingsNote} with that saved snapshot. This cannot be undone.`, 'Restore Default Staff List'))) return;
+    db.staff = JSON.parse(JSON.stringify(db.defaultData.staff));
+    db.shifts = JSON.parse(JSON.stringify(db.defaultData.shifts));
+    db.holidays = JSON.parse(JSON.stringify(db.defaultData.holidays));
+    // Older saved defaults (from before settings were included) won't have this — leave
+    // current settings untouched in that case rather than wiping them out.
+    if (includesSettings) db.settings = JSON.parse(JSON.stringify(db.defaultData.settings));
+    nextStaffId = db.staff.length ? Math.max(...db.staff.map(s => s.id)) + 1 : 1;
+    nextShiftId = db.shifts.length ? Math.max(...db.shifts.map(s => s.id)) + 1 : 1;
+    saveData();
+    refreshDashboard(); renderStaffTable(); renderShiftTable(); renderHolidayGrid(); loadSettingsForm();
+    toast('✅ Saved default dataset restored.');
+  } else {
+    if (!(await showConfirm('Restore the built-in default staff list?\n\nThis will REPLACE all current staff, shifts, and holiday data with the built-in defaults (3 shifts, all guest & technical staff). This cannot be undone.', 'Restore Default Staff List'))) return;
+    db.staff = [];
+    db.shifts = [];
+    db.holidays = {};
+    seedDefaultData(); // saves + re-renders internally
+    toast('✅ Built-in default staff list restored.');
+  }
+}
+
+async function saveCurrentAsDefault() {
+  const hasExisting = !!(db.defaultData && (db.defaultData.staff || []).length);
+  const msg = hasExisting
+    ? `Overwrite the saved default dataset with the CURRENT staff, shifts, holidays and settings?\n\nThis permanently replaces the existing saved default (saved ${db.defaultData.savedAt ? new Date(db.defaultData.savedAt).toLocaleString() : 'earlier'}) for every device and instructor this link is shared with — it cannot be recovered afterwards. "Restore Default Staff List" will use this new snapshot from now on.`
+    : `Save the CURRENT staff, shifts, holidays and settings as the default dataset?\n\n"Restore Default Staff List" will use this snapshot instead of the built-in sample data from now on, for every device and instructor this link is shared with.`;
+  if (!(await showDangerConfirm(msg, 'Save Current Data as Default', 'SAVE'))) return;
+  db.defaultData = {
+    staff: JSON.parse(JSON.stringify(db.staff)),
+    shifts: JSON.parse(JSON.stringify(db.shifts)),
+    holidays: JSON.parse(JSON.stringify(db.holidays)),
+    settings: JSON.parse(JSON.stringify(db.settings)),
+    savedAt: Date.now()
+  };
+  saveData();
+  renderDefaultDataStatus();
+  toast('✅ Current data and settings saved as the default.');
+}
+
+function renderDefaultDataStatus() {
+  const el = document.getElementById('default-data-status');
+  if (!el) return;
+  if (db.defaultData && (db.defaultData.staff || []).length) {
+    const savedWhen = db.defaultData.savedAt ? new Date(db.defaultData.savedAt).toLocaleString() : 'unknown time';
+    const settingsNote = db.defaultData.settings ? ' and settings' : ' (saved before settings were included — settings not covered)';
+    el.textContent = `"Restore Default Staff List" will restore a custom saved snapshot (${db.defaultData.staff.length} staff, ${db.defaultData.shifts.length} shifts${settingsNote}) saved on ${savedWhen}.`;
+  } else {
+    el.textContent = '"Restore Default Staff List" currently restores the built-in sample data — no custom default has been saved yet.';
+  }
+}
+
+function renderSyncDebugInfo() {
+  const el = document.getElementById('sync-debug-info');
+  if (!el) return;
+  const badge = document.getElementById('sync-status');
+  const lines = [
+    `<strong>App build:</strong> ${APP_BUILD}`,
+    `<strong>Sync status:</strong> ${badge ? badge.textContent : '—'}`,
+    `<strong>Connected to Firestore:</strong> ${firestoreDocRef ? 'Yes' : 'No'}`,
+    `<strong>Staff / Shifts loaded:</strong> ${db.staff.length} / ${db.shifts.length}`,
+    `<strong>Last known update time:</strong> ${localUpdatedAt ? new Date(localUpdatedAt).toLocaleString() : '—'}`
+  ];
+  el.innerHTML = lines.join('<br>');
+}
+
+// ===== SEED DATA =====
+function seedDefaultData() {
+  db.version = DATA_VERSION;
+  // === SHIFTS ===
+  db.shifts = [
+    {id:1, name:'SHIFT – I (Guest)', category:'Guest Instructor', malCat:'ഗസ്റ്റ് ഇൻസ്ട്രക്ടർ'},
+    {id:2, name:'SHIFT – I', category:'Technical Staff', malCat:'സാങ്കേതിക വിഭാഗം ജീവനക്കാർ'},
+    {id:3, name:'SHIFT – II', category:'Technical Staff', malCat:'സാങ്കേതിക വിഭാഗം ജീവനക്കാർ'}
+  ];
+
+  // === SHIFT I – GUEST INSTRUCTORS ===
+  const guestStaff = [
+    {nameMal:'ലിജി ആർ രാജ്', nameEng:'Liji R Raj', trade:'MCEA', type:'guest'},
+    {nameMal:'അമൽ എസ് ആർ', nameEng:'Amal S R', trade:'TDM', type:'guest'},
+    {nameMal:'ആശിർ', nameEng:'Aashir', trade:'FR', type:'guest'},
+    {nameMal:'ജീന ഇഗ്‌നേഷ്യസ്', nameEng:'Jeena Ignatius', trade:'WM', type:'guest'}
+  ];
+
+  // === SHIFT I – TECHNICAL STAFF ===
+  const shift1Staff = [
+    // Group Instructors
+    {nameMal:'ശ്രീ. ഹാഷിം. എ', nameEng:'Sri. Hashim A', trade:'', type:'regular', pen:'370382', desig:'GI(HG)', grp:'ഗ്രൂപ്പ് ഇൻസ്ട്രക്ടർ (ഹ.ഗ്രേ)'},
+    {nameMal:'ശ്രീ. അജി. വി.വി', nameEng:'Sri. Aji V V', trade:'', type:'regular', pen:'370380', desig:'GI', grp:'ഗ്രൂപ്പ് ഇൻസ്ട്രക്ടർ'},
+    // Senior Instructors
+    {nameMal:'ശ്രീമതി. അശ്വതി ദേവി. ജി', nameEng:'Smt. Aswathi Devi G', trade:'COPA', type:'regular', pen:'369713', desig:'SI'},
+    {nameMal:'ശ്രീമതി. ലിജി യു ആർ', nameEng:'Smt. Liji U R', trade:'EL', type:'regular', pen:'834762', desig:'SI'},
+    {nameMal:'ശ്രീ. സനിൽ. എം.ആർ', nameEng:'Sri. Sanil M R', trade:'EM', type:'regular', pen:'370036', desig:'SI'},
+    {nameMal:'ശ്രീ. വിനോദ് കുമാർ. എസ്', nameEng:'Sri. Vinod Kumar S', trade:'FR', type:'regular', pen:'370407', desig:'SI'},
+    {nameMal:'ശ്രീ. മോഹൻരാജ്. വി', nameEng:'Sri. Mohanraj V', trade:'MC', type:'regular', pen:'726854', desig:'SI'},
+    {nameMal:'ശ്രീ. സുജിത് കുമാർ. എസ്. കെ', nameEng:'Sri. Sujith Kumar S K', trade:'WWT', type:'regular', pen:'785442', desig:'SI'},
+    {nameMal:'ശ്രീമതി. സന്ധ്യ മോഹൻ. കെ', nameEng:'Smt. Sandhya Mohan K', trade:'PL', type:'regular', pen:'756477', desig:'SI'},
+    {nameMal:'ശ്രീ. രഞ്ജിത്. ആർ.എസ്', nameEng:'Sri. Ranjith R S', trade:'TR', type:'regular', pen:'117268', desig:'SI'},
+    {nameMal:'ശ്രീ. എൻ. ജയചന്ദ്രൻ', nameEng:'Sri. N Jayachandran', trade:'WL', type:'regular', pen:'341041', desig:'SI'},
+    {nameMal:'ശ്രീ. വിനീത്. റ്റി.എൽ', nameEng:'Sri. Vineeth T L', trade:'WL', type:'regular', pen:'752335', desig:'SI'},
+    {nameMal:'ശ്രീ. പോൾ രാജ്. ഡി', nameEng:'Sri. Paul Raj D', trade:'WL', type:'regular', pen:'762552', desig:'SI'},
+    {nameMal:'ശ്രീ. ശ്രീകുമാർ. ബി.എസ്', nameEng:'Sri. Sreekumar B S', trade:'WM', type:'regular', pen:'370498', desig:'SI'},
+    // Junior Instructors
+    {nameMal:'ശ്രീമതി. പ്രഭാത സുഷമ. കെ.പി', nameEng:'Smt. Prabhatha Sushama K P', trade:'CHNM', type:'regular', pen:'916731', desig:'JI'},
+    {nameMal:'ശ്രീ. ഹരീന്ദ്ര കുമാർ. ആർ', nameEng:'Sri. Hareendra Kumar R', trade:'DC', type:'regular', pen:'689587', desig:'JI'},
+    {nameMal:'ശ്രീ. ശ്യാംലാൽ. പി.എസ്', nameEng:'Sri. Shyamlal P S', trade:'DM', type:'regular', pen:'1020007', desig:'JI'},
+    {nameMal:'ശ്രീ. അനീഷ്. ജി.റ്റി', nameEng:'Sri. Aneesh G T', trade:'EL', type:'regular', pen:'940105', desig:'JI'},
+    {nameMal:'ശ്രീ. സുശീൽരാജ്. ആർ.എസ്', nameEng:'Sri. Sushilraj R S', trade:'FR', type:'regular', pen:'807765', desig:'JI'},
+    {nameMal:'ശ്രീ. അരുൺ. എസ്.വി', nameEng:'Sri. Arun S V', trade:'FR', type:'regular', pen:'907554', desig:'JI'},
+    {nameMal:'ശ്രീ. അമൽ. എ.എസ്', nameEng:'Sri. Amal A S', trade:'MC', type:'regular', pen:'931206', desig:'JI'},
+    {nameMal:'ശ്രീ. ലാൽ. ആർ', nameEng:'Sri. Lal R', trade:'MC', type:'regular', pen:'917572', desig:'JI'},
+    {nameMal:'ശ്രീ. ആരിഷ്. എ.എം', nameEng:'Sri. Aarish A M', trade:'MCEA', type:'regular', pen:'1037305', desig:'JI'},
+    {nameMal:'ശ്രീ. ദിപിൻ. റ്റി.എൽ', nameEng:'Sri. Dipin T L', trade:'MD', type:'regular', pen:'912593', desig:'JI'},
+    {nameMal:'ശ്രീ. അനൂപ് നന്ദൻ', nameEng:'Sri. Anoop Nandan', trade:'WL', type:'regular', pen:'948166', desig:'JI'},
+    {nameMal:'ശ്രീ. മഹേഷ്. എം.റ്റി', nameEng:'Sri. Mahesh M T', trade:'OAMT', type:'regular', pen:'925585', desig:'JI'},
+    {nameMal:'ശ്രീ. അനീഷ്. ആർ', nameEng:'Sri. Aneesh R', trade:'RACT', type:'regular', pen:'856398', desig:'JI'},
+    {nameMal:'ശ്രീ. ബിബിൻ രാജ്. വി.സി', nameEng:'Sri. Bibin Raj V C', trade:'SMW', type:'regular', pen:'935941', desig:'JI'},
+    {nameMal:'ശ്രീ. പ്രഭഞ്ജൻ. ആർ. എസ്', nameEng:'Sri. Prabhanjan R S', trade:'SMW', type:'regular', pen:'936067', desig:'JI'},
+    {nameMal:'ശ്രീമതി. അരുന്ധതി ആർ നായർ', nameEng:'Smt. Arundhathi R Nair', trade:'SR', type:'regular', pen:'1025816', desig:'JI'},
+    {nameMal:'ശ്രീ. അജു ജോസ്', nameEng:'Sri. Aju Jose', trade:'TR', type:'regular', pen:'851068', desig:'JI'},
+    {nameMal:'ശ്രീ. സനൽകുമാർ ആർ പി', nameEng:'Sri. Sanalkumar R P', trade:'WL (GG)', type:'regular', pen:'730255', desig:'JI'},
+    {nameMal:'ശ്രീ. അരുൺ എസ്', nameEng:'Sri. Arun S', trade:'WM', type:'regular', pen:'826102', desig:'JI'},
+    // Workshop Attenders
+    {nameMal:'ശ്രീമതി. സചിത്ര. പി .എസ്', nameEng:'Smt. Sachithra P S', trade:'COPA', type:'regular', pen:'905554', desig:'WA', grp:'വർക്ക്‌ഷോപ്പ് അറ്റൻഡർ'},
+    {nameMal:'ശ്രീ. മഹേഷ്. എം.എസ്', nameEng:'Sri. Mahesh M S', trade:'FR', type:'regular', pen:'853355', desig:'WA'},
+    {nameMal:'ശ്രീമതി. ശാന്ത. സി', nameEng:'Smt. Shantha C', trade:'WL', type:'regular', pen:'774987', desig:'WA'},
+    // Sweepers
+    {nameMal:'ശ്രീമതി. ശ്രീദേവി. ഒ', nameEng:'Smt. Sreedevi O', trade:'', type:'regular', pen:'1016065', desig:'SWP', grp:'സ്വീപ്പർ'},
+    {nameMal:'ശ്രീമതി. വിജില കുമാരി. വി', nameEng:'Smt. Vijila Kumari V', trade:'', type:'regular', pen:'1024778', desig:'SWP'},
+    {nameMal:'ശ്രീമതി. ലീനാ കുമാരി. എസ്', nameEng:'Smt. Leena Kumari S', trade:'', type:'regular', pen:'803594', desig:'SWP'},
+    {nameMal:'ശ്രീമതി. വിജി പി എസ്', nameEng:'Smt. Viji P S', trade:'', type:'regular', pen:'1016139', desig:'SWP'}
+  ];
+
+  // === SHIFT II – TECHNICAL STAFF ===
+  const shift2Staff = [
+    // Group Instructors
+    {nameMal:'ശ്രീ. റെജിമോൻ. ഡി. എം', nameEng:'Sri. Rejimon D M', trade:'', type:'regular', pen:'370684', desig:'GI', grp:'ഗ്രൂപ്പ് ഇൻസ്ട്രക്ടർ'},
+    {nameMal:'ശ്രീ. ഹരിലാൽ. എസ്', nameEng:'Sri. Harilal S', trade:'', type:'regular', pen:'370379', desig:'GI'},
+    {nameMal:'ശ്രീ.വിപിൻകുമാർ. പി.എസ്', nameEng:'Sri. Vipinkumar P S', trade:'', type:'regular', pen:'636640', desig:'GI'},
+    // Senior Instructors
+    {nameMal:'ശ്രീ. സുനിൽ കുമാർ. ഡി', nameEng:'Sri. Sunil Kumar D', trade:'ACD', type:'regular', pen:'308860', desig:'SI'},
+    {nameMal:'ശ്രീ. അരുൺ കുമാർ. ബി.എസ്', nameEng:'Sri. Arun Kumar B S', trade:'ACD', type:'regular', pen:'341036', desig:'SI'},
+    {nameMal:'ശ്രീമതി. ശ്രീപ്രഭ. പി.എസ്', nameEng:'Smt. Sreeprabha P S', trade:'ACD', type:'regular', pen:'619215', desig:'SI'},
+    {nameMal:'ശ്രീ. മനോജ്. ടി.എസ്', nameEng:'Sri. Manoj T S', trade:'ACD', type:'regular', pen:'746356', desig:'SI'},
+    {nameMal:'ശ്രീമതി. മീനാംബിക. പി.എ', nameEng:'Smt. Meenambika P A', trade:'ACD', type:'regular', pen:'758630', desig:'SI'},
+    {nameMal:'ശ്രീമതി. സജി. എസ്.എസ്', nameEng:'Smt. Saji S S', trade:'ACD', type:'regular', pen:'815266', desig:'SI'},
+    {nameMal:'ശ്രീമതി. ഹെലൻ. എസ്', nameEng:'Smt. Helen S', trade:'ACD', type:'regular', pen:'818883', desig:'SI'},
+    {nameMal:'ശ്രീ. ദിനോജ് എം ഖാൻ', nameEng:'Sri. Dinoj M Khan', trade:'COPA', type:'regular', pen:'815231', desig:'SI'},
+    {nameMal:'ശ്രീമതി. റാണി. ബി.ആർ.', nameEng:'Smt. Rani B R', trade:'DC', type:'regular', pen:'754226', desig:'SI'},
+    {nameMal:'ശ്രീമതി. ഷിജി. ജെ.എസ്', nameEng:'Smt. Shiji J S', trade:'EL', type:'regular', pen:'885445', desig:'SI'},
+    {nameMal:'ശ്രീ. അനിൽ കുമാർ. എ', nameEng:'Sri. Anil Kumar A', trade:'FR', type:'regular', pen:'369939', desig:'SI'},
+    {nameMal:'ശ്രീ. ബിനു. എ.എസ്', nameEng:'Sri. Binu A S', trade:'PL', type:'regular', pen:'405945', desig:'SI'},
+    {nameMal:'ശ്രീമതി. റാണി. ജി.എസ്', nameEng:'Smt. Rani G S', trade:'SMW', type:'regular', pen:'751841', desig:'SI'},
+    {nameMal:'ശ്രീ. വിനോജ്. ആർ.എസ്', nameEng:'Sri. Vinoj R S', trade:'SMW', type:'regular', pen:'730307', desig:'SI'},
+    {nameMal:'ശ്രീമതി. ഷീബ. എസ്.കെ.', nameEng:'Smt. Sheeba S K', trade:'SR', type:'regular', pen:'746299', desig:'SI'},
+    {nameMal:'ശ്രീ. അഭി ഭദ്രൻ', nameEng:'Sri. Abhi Bhadran', trade:'TDM', type:'regular', pen:'806584', desig:'SI'},
+    {nameMal:'ശ്രീ. സേതുമോൻ. എൻ.സി', nameEng:'Sri. Sethumon N C', trade:'WL', type:'regular', pen:'370596', desig:'SI'},
+    {nameMal:'ശ്രീ. രാജേഷ്‌കുമാർ. ജി', nameEng:'Sri. Rajeshkumar G', trade:'WL', type:'regular', pen:'745400', desig:'SI'},
+    {nameMal:'ശ്രീ. അജി. കെ', nameEng:'Sri. Aji K', trade:'WM', type:'regular', pen:'367492', desig:'SI'},
+    // Junior Instructors
+    {nameMal:'ശ്രീ. ഷൈൻ. എം.റ്റി', nameEng:'Sri. Shine M T', trade:'CHNM', type:'regular', pen:'768841', desig:'JI'},
+    {nameMal:'ശ്രീ. മനോജ്. എം.എസ്', nameEng:'Sri. Manoj M S', trade:'EL', type:'regular', pen:'937712', desig:'JI'},
+    {nameMal:'ശ്രീ. സന്ദീപ്കുമാർ.ജി', nameEng:'Sri. Sandeepkumar G', trade:'WL GG', type:'regular', pen:'761622', desig:'JI'},
+    {nameMal:'ശ്രീ. മഹേഷ് മോഹൻ. എം', nameEng:'Sri. Mahesh Mohan M', trade:'FR', type:'regular', pen:'926720', desig:'JI'},
+    {nameMal:'ശ്രീ. രാജീവ്‌ലാൽ. ആർ', nameEng:'Sri. Rajeevalal R', trade:'FR', type:'regular', pen:'975167', desig:'JI'},
+    {nameMal:'ശ്രീ. ശരത് എസ് നായർ', nameEng:'Sri. Sharath S Nair', trade:'FR', type:'regular', pen:'1038012', desig:'JI'},
+    {nameMal:'ശ്രീ. ബൈജു കുമാർ. ജി', nameEng:'Sri. Baiju Kumar G', trade:'MC', type:'regular', pen:'753365', desig:'JI'},
+    {nameMal:'ശ്രീ. രതീഷ് കുമാർ. ജെ.എൽ', nameEng:'Sri. Ratheesh Kumar J L', trade:'MC', type:'regular', pen:'930218', desig:'JI'},
+    {nameMal:'ശ്രീ. മിഥുൻ. എം. എം', nameEng:'Sri. Mithun M M', trade:'MC', type:'regular', pen:'943269', desig:'JI'},
+    {nameMal:'ശ്രീ. വർഗീസ് ജി', nameEng:'Sri. Varghese G', trade:'MCEA', type:'regular', pen:'1026460', desig:'JI'},
+    {nameMal:'ശ്രീ. വിപിൻസാജ്. വി.എസ്', nameEng:'Sri. Vipinsaj V S', trade:'MCEA', type:'regular', pen:'910877', desig:'JI'},
+    {nameMal:'ശ്രീ. അശ്വിൻ ബി. വസന്ത്', nameEng:'Sri. Ashwin B Vasanth', trade:'MD', type:'regular', pen:'909460', desig:'JI'},
+    {nameMal:'ശ്രീ. ജിതിൻ. കെ', nameEng:'Sri. Jithin K', trade:'OAMT', type:'regular', pen:'917833', desig:'JI'},
+    {nameMal:'ശ്രീ. ഷാജി ഡി', nameEng:'Sri. Shaji D', trade:'RACT', type:'regular', pen:'740295', desig:'JI'},
+    {nameMal:'ശ്രീ. ശ്യാം ആർ നാഥ്', nameEng:'Sri. Shyam R Nath', trade:'TR', type:'regular', pen:'985063', desig:'JI'},
+    {nameMal:'ശ്രീ. ശരത് എസ് എസ്', nameEng:'Sri. Sharath S S', trade:'TR', type:'regular', pen:'901232', desig:'JI'},
+    // Workshop Attenders
+    {nameMal:'ശ്രീമതി. ശാരി എസ് കുമാർ', nameEng:'Smt. Shari S Kumar', trade:'EL', type:'regular', desig:'WA', grp:'വർക്ക്‌ഷോപ്പ് അറ്റൻഡർ'},
+    {nameMal:'ശ്രീ. രാഹുൽ എ', nameEng:'Sri. Rahul A', trade:'EMECH', type:'regular', desig:'WA'},
+    // Dresser
+    {nameMal:'ശ്രീ. ഹരികുമാർ', nameEng:'Sri. Harikumar', trade:'', type:'regular', desig:'DRSR', grp:'ഡ്രസ്സർ'}
+  ];
+
+  let sid = 1;
+  guestStaff.forEach(s => db.staff.push({id:sid++, shiftId:1, cl:0, ...s}));
+  shift1Staff.forEach(s => db.staff.push({id:sid++, shiftId:2, cl:0, ...s}));
+  shift2Staff.forEach(s => db.staff.push({id:sid++, shiftId:3, cl:0, ...s}));
+
+  nextShiftId = 4;
+  nextStaffId = sid;
+
+  // Auto-mark October 2026 holidays
+  const m = 9; const y = 2026;
+  const dim = new Date(y, m+1, 0).getDate();
+  let satC = 0;
+  for (let d = 1; d <= dim; d++) {
+    const key = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(y, m, d).getDay();
+    if (dow === 0) db.holidays[key] = 'SUNDAY';
+    else if (dow === 6) { satC++; if (satC === 2) db.holidays[key] = 'SECOND SATURDAY'; }
+  }
+  // Known public holidays in October 2026 (Kerala)
+  db.holidays['2026-10-02'] = 'HOLIDAY'; // Gandhi Jayanti
+  db.holidays['2026-10-20'] = 'HOLIDAY'; // Milad-un-Nabi (approx)
+  db.holidays['2026-10-21'] = 'HOLIDAY'; // Milad-un-Nabi (approx)
+
+  saveData();
+  refreshDashboard();
+  renderStaffTable();
+}
+
+// ===== INIT — Firebase Auth gate =====
+// Everything boots from onAuthStateChanged.  The UI is hidden until we confirm
+// the user is logged in, then we load local cache, start Firestore sync, and render.
+
+// ── Auth UI helpers ──────────────────────────────────────────────────
+function authShowTab(tab) {
+  const loginBtn  = document.getElementById('tab-login-btn');
+  const regBtn    = document.getElementById('tab-register-btn');
+  const loginForm = document.getElementById('auth-login-form');
+  const regForm   = document.getElementById('auth-register-form');
+  const forgotFrm = document.getElementById('auth-forgot-form');
+
+  loginBtn.style.color        = tab === 'login'    ? '#1a4b8c' : '#718096';
+  loginBtn.style.borderBottom = tab === 'login'    ? '2px solid #1a4b8c' : '2px solid transparent';
+  loginBtn.style.fontWeight   = tab === 'login'    ? '600' : '500';
+  regBtn.style.color          = tab === 'register' ? '#1a4b8c' : '#718096';
+  regBtn.style.borderBottom   = tab === 'register' ? '2px solid #1a4b8c' : '2px solid transparent';
+  regBtn.style.fontWeight     = tab === 'register' ? '600' : '500';
+
+  loginForm.style.display  = tab === 'login'     ? 'block' : 'none';
+  regForm.style.display    = tab === 'register'  ? 'block' : 'none';
+  forgotFrm.style.display  = tab === 'forgot'    ? 'block' : 'none';
+}
+
+async function authDoLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('auth-login-btn');
+  const err = document.getElementById('auth-login-error');
+  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    await fbAuth.signInWithEmailAndPassword(
+      document.getElementById('login-email').value.trim(),
+      document.getElementById('login-password').value
+    );
+    // onAuthStateChanged will fire and show the app
+  } catch(ex) {
+    err.textContent = _authErrMsg(ex);
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+async function authDoRegister(e) {
+  e.preventDefault();
+  const btn  = document.getElementById('auth-register-btn');
+  const err  = document.getElementById('auth-register-error');
+  const pass = document.getElementById('reg-password').value;
+  const pass2= document.getElementById('reg-password2').value;
+  err.style.display = 'none';
+  if (pass !== pass2) {
+    err.textContent = 'Passwords do not match.';
+    err.style.display = 'block'; return;
+  }
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  try {
+    await fbAuth.createUserWithEmailAndPassword(
+      document.getElementById('reg-email').value.trim(), pass
+    );
+    // onAuthStateChanged will fire
+  } catch(ex) {
+    err.textContent = _authErrMsg(ex);
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+}
+
+async function authDoForgot() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const msgEl = document.getElementById('auth-forgot-msg');
+  if (!email) {
+    msgEl.textContent = 'Please enter your email address.';
+    msgEl.style.cssText = 'display:block;color:#c0392b;background:#fdf2f2;padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:12px;';
+    return;
+  }
+  try {
+    await fbAuth.sendPasswordResetEmail(email);
+    msgEl.textContent = '✅ Reset link sent! Check your inbox (and spam folder).';
+    msgEl.style.cssText = 'display:block;color:#276749;background:#e6f4ec;padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:12px;';
+  } catch(ex) {
+    msgEl.textContent = _authErrMsg(ex);
+    msgEl.style.cssText = 'display:block;color:#c0392b;background:#fdf2f2;padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:12px;';
+  }
+}
+
+async function authSignOut() {
+  try {
+    // Stop Firestore listener before signing out
+    firestoreDocRef = null;
+    await fbAuth.signOut();
+    // onAuthStateChanged will fire and show the auth screen
+    // Reset app state so the next login starts clean
+    db = { staff:[], shifts:[], holidays:{}, settings: db.settings, defaultData:null };
+    nextStaffId = 1; nextShiftId = 1;
+    localUpdatedAt = 0; sharedReadyAtLeastOnce = false;
+  } catch(ex) { console.warn('Sign out error:', ex); }
+}
+
+function _authErrMsg(ex) {
+  const map = {
+    'auth/invalid-email':          'Please enter a valid email address.',
+    'auth/user-not-found':         'No account found with that email.',
+    'auth/wrong-password':         'Incorrect password. Please try again.',
+    'auth/invalid-credential':     'Incorrect email or password.',
+    'auth/email-already-in-use':   'An account with that email already exists.',
+    'auth/weak-password':          'Password must be at least 6 characters.',
+    'auth/too-many-requests':      'Too many failed attempts. Please try again later.',
+    'auth/network-request-failed': 'Network error — please check your connection.',
+  };
+  return map[ex.code] || (ex.message || 'Something went wrong. Please try again.');
+}
+
+// ── Main auth gate ───────────────────────────────────────────────────
+fbAuth.onAuthStateChanged(user => {
+  if (user) {
+    // Logged in — show the app, hide auth screen
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display  = '';
+
+    // Show user's email in topbar
+    const emailEl = document.getElementById('user-email-display');
+    if (emailEl) { emailEl.textContent = user.email; emailEl.title = user.email; }
+
+    // Load local cache and render immediately so the UI isn't blank while Firestore connects
+    loadData();
+    refreshDashboard();
+    renderStaffTable();
+
+    // Then connect Firestore for live sync
+    initFirestoreSync(user);
+
+  } else {
+    // Not logged in — show auth screen, hide app
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app-screen').style.display  = 'none';
+    setSyncStatus('offline');
+  }
+});
+</script>
+
+</body></html>
