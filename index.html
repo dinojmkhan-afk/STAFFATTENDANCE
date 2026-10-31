@@ -11,7 +11,7 @@
      Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
- const FIREBASE_CONFIG = {
+  const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
   authDomain:        "iti-staff-attendance.firebaseapp.com",
   projectId:         "iti-staff-attendance",
@@ -769,10 +769,6 @@ tr:hover td { background: var(--accent-soft); }
                 <div class="print-option-card selected" id="opt-both" onclick="selectPrintOpt('both')">
                   <h4>📄 Left + Right Pages</h4>
                   <p>Left page: days 1–12 + staff names + trade column. Right page: days 13–end + Remarks only (no repeated name columns), for maximum signature width. Suitable for binding.</p>
-                </div>
-                <div class="print-option-card" id="opt-left" onclick="selectPrintOpt('left')">
-                  <h4>← Left Page Only</h4>
-                  <p>Days 1–11 + staff names + trade column. With left-side gutter for binding spine.</p>
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:16px;margin:10px 0;padding:10px 14px;background:var(--bg-2);border-radius:8px;flex-wrap:wrap;">
@@ -2126,7 +2122,6 @@ function rememberGenOptions() {
 function selectPrintOpt(val) {
   printOption = val;
   document.getElementById('opt-both').classList.toggle('selected', val==='both');
-  document.getElementById('opt-left').classList.toggle('selected', val==='left');
 }
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
@@ -2236,11 +2231,9 @@ function buildPrintHtml(month, year, selectedShiftId, showPen = false, rightOffs
       html += buildRegisterPage(chunkItems, leftDays, month, year, shift, monthName, false, fnH, anH, s, chunkIdx, chunks.length, showPen, 0);
       pageCount++;
 
-      // Right page (days 12–end) — only if not left-only
-      if (printOption !== 'left') {
-        html += buildRegisterPage(chunkItems, rightDays, month, year, shift, monthName, true, fnH, anH, s, chunkIdx, chunks.length, showPen, rightOffsetMm);
-        pageCount++;
-      }
+      // Right page (days 12–end)
+      html += buildRegisterPage(chunkItems, rightDays, month, year, shift, monthName, true, fnH, anH, s, chunkIdx, chunks.length, showPen, rightOffsetMm);
+      pageCount++;
     });
 
     // For continuous automatic double-sided printing, each shift's cover page
