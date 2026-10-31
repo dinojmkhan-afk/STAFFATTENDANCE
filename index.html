@@ -11,7 +11,7 @@
      Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
- const FIREBASE_CONFIG = {
+const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
   authDomain:        "iti-staff-attendance.firebaseapp.com",
   projectId:         "iti-staff-attendance",
@@ -870,6 +870,20 @@ tr:hover td { background: var(--accent-soft); }
                     <label>Max Staff per Register Table</label>
                     <input type="number" id="s-perpage" value="15" min="5" max="30">
                   </div>
+                </div>
+              </div>
+              <div class="settings-section">
+                <h3>Staff Name Language in Register</h3>
+                <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                    <input type="radio" name="s-namemode" value="both" checked> Both (Malayalam + English)
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                    <input type="radio" name="s-namemode" value="mal"> Malayalam only
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                    <input type="radio" name="s-namemode" value="eng"> English only
+                  </label>
                 </div>
               </div>
               <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
@@ -1888,6 +1902,8 @@ function loadSettingsForm() {
   document.getElementById('s-fnheight').value = s.fnheight || 6;
   document.getElementById('s-anheight').value = s.anheight || 6;
   document.getElementById('s-perpage').value = s.perpage || 15;
+  const nameMode = s.nameMode || 'both';
+  document.querySelectorAll('input[name="s-namemode"]').forEach(r => { r.checked = r.value === nameMode; });
   renderDefaultDataStatus();
   renderSyncDebugInfo();
 }
@@ -1903,7 +1919,8 @@ function saveSettings() {
     sec: document.getElementById('s-sec').value.trim(),
     fnheight: parseFloat(document.getElementById('s-fnheight').value) || 6,
     anheight: parseFloat(document.getElementById('s-anheight').value) || 6,
-    perpage: parseInt(document.getElementById('s-perpage').value) || 15
+    perpage: parseInt(document.getElementById('s-perpage').value) || 15,
+    nameMode: document.querySelector('input[name="s-namemode"]:checked')?.value || 'both'
   };
   saveData(); toast('Settings saved!');
 }
@@ -2148,7 +2165,17 @@ function buildRegisterPage(chunkItems, days, month, year, shift, monthName, isRi
     if (!isRight) {
       html += `<td class="cn" rowspan="2" style="font-variant-numeric:tabular-nums;font-size:6pt;">${item.num}</td>`;
       const penBadge = (showPen && staff.pen) ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:7pt;color:#777;letter-spacing:.04em;"> PEN:${staff.pen}</span>` : '';
-      html += `<td class="cname namecell" rowspan="2" style="font-family:'Noto Serif Malayalam',serif;font-size:11pt;">${staff.nameMal}${penBadge}${staff.nameEng?`<br><span style="font-family:'IBM Plex Sans',sans-serif;font-size:9pt;">${staff.nameEng}</span>`:''}</td>`;
+      const nameMode = db.settings.nameMode || 'both';
+      let nameHtml = '';
+      if (nameMode === 'mal') {
+        nameHtml = `${staff.nameMal}${penBadge}`;
+      } else if (nameMode === 'eng') {
+        nameHtml = `<span style="font-family:'IBM Plex Sans',sans-serif;font-size:9pt;">${staff.nameEng || staff.nameMal}</span>${penBadge}`;
+      } else {
+        // both
+        nameHtml = `${staff.nameMal}${penBadge}${staff.nameEng?`<br><span style="font-family:'IBM Plex Sans',sans-serif;font-size:9pt;">${staff.nameEng}</span>`:''}`;
+      }
+      html += `<td class="cname namecell" rowspan="2" style="font-family:'Noto Serif Malayalam',serif;font-size:11pt;">${nameHtml}</td>`;
       html += `<td class="ctrade" rowspan="2" style="font-size:7.5pt;font-weight:600;">${tradeColumnLabel(staff)}${staff.cl > 0 ? `<br><span style="font-size:7.5pt;color:#777;">CL:${staff.cl}</span>` : ''}</td>`;
       html += `<td class="cfnlbl" style="font-size:7pt;font-weight:700;">FN</td>`;
     }
