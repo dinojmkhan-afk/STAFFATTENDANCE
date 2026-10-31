@@ -11,7 +11,7 @@
      Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
-const FIREBASE_CONFIG = {
+ const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
   authDomain:        "iti-staff-attendance.firebaseapp.com",
   projectId:         "iti-staff-attendance",
@@ -2170,7 +2170,7 @@ function buildRegisterPage(chunkItems, days, month, year, shift, monthName, isRi
       if (nameMode === 'mal') {
         nameHtml = `${staff.nameMal}${penBadge}`;
       } else if (nameMode === 'eng') {
-        nameHtml = `<span style="font-family:'IBM Plex Sans',sans-serif;font-size:9pt;">${staff.nameEng || staff.nameMal}</span>${penBadge}`;
+        nameHtml = `<span style="font-family:'IBM Plex Sans',sans-serif;font-size:12pt;">${staff.nameEng || staff.nameMal}</span>${penBadge}`;
       } else {
         // both
         nameHtml = `${staff.nameMal}${penBadge}${staff.nameEng?`<br><span style="font-family:'IBM Plex Sans',sans-serif;font-size:9pt;">${staff.nameEng}</span>`:''}`;
