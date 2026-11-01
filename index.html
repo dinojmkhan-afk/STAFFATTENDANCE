@@ -18,7 +18,8 @@
   storageBucket:     "iti-staff-attendance.firebasestorage.app",
   messagingSenderId: "753761046439",
   appId:             "1:753761046439:web:017b0caca697ff936b3082"
-};
+};        "YOUR_APP_ID"
+  };
 </script>
 
 <!-- Firebase SDK (compat v8 syntax — works in a plain HTML file, no build step needed) -->
@@ -2064,8 +2065,29 @@ function autoMarkHolidays() {
   toast('Sundays and 2nd Saturday marked!');
 }
 
-document.getElementById('hol-month').addEventListener('change', renderHolidayGrid);
-document.getElementById('hol-year').addEventListener('change', renderHolidayGrid);
+// Keep gen-month/gen-year and hol-month/hol-year in sync
+function syncMonthYear(srcMonth, srcYear, dstMonthId, dstYearId) {
+  const dm = document.getElementById(dstMonthId);
+  const dy = document.getElementById(dstYearId);
+  if (dm) dm.value = srcMonth.value;
+  if (dy) dy.value = srcYear.value;
+}
+document.getElementById('hol-month').addEventListener('change', function() {
+  syncMonthYear(this, document.getElementById('hol-year'), 'gen-month', 'gen-year');
+  renderHolidayGrid();
+});
+document.getElementById('hol-year').addEventListener('change', function() {
+  syncMonthYear(document.getElementById('hol-month'), this, 'gen-month', 'gen-year');
+  renderHolidayGrid();
+});
+document.getElementById('gen-month').addEventListener('change', function() {
+  syncMonthYear(this, document.getElementById('gen-year'), 'hol-month', 'hol-year');
+  renderHolidayGrid();
+});
+document.getElementById('gen-year').addEventListener('change', function() {
+  syncMonthYear(document.getElementById('gen-month'), this, 'hol-month', 'hol-year');
+  renderHolidayGrid();
+});
 
 // ===== SETTINGS =====
 function loadSettingsForm() {
