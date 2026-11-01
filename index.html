@@ -1337,10 +1337,10 @@ function loadData() {
 function saveData() {
   localUpdatedAt = Date.now(); // mark local state as "newer than anything we've seen" BEFORE any async work starts
   try { localStorage.setItem('iti-attendance-db', JSON.stringify(db)); } catch(e) {}
-  pushSharedData(); // keeps every device/instructor that opens this link in sync; see setSyncStatus for visibility into whether this finishes before the tab closes
+  pushSharedData(); // syncs to Firestore so all signed-in devices stay up to date
 }
 
-// ===== SHARED STORAGE (syncs the same data across every device/browser this link is opened on) =====
+// ===== CLOUD SYNC (syncs data across all devices where the user is signed in) =====
 // ===== FIREBASE SYNC =====
 // Each instructor has their own private data at: users/{userId}/attendance/main
 // This replaces the Claude Artifact "db" capability that was here before.
@@ -2597,7 +2597,7 @@ function importData(e) {
 }
 
 async function clearAllData() {
-  const msg = `Clear ALL staff, shifts and holiday data — for every device and instructor this link is shared with?\n\nThis cannot be undone. (The saved default dataset, if any, is kept — you can still use "Restore Default Staff List" afterwards.)`;
+  const msg = `Clear ALL staff, shifts and holiday data from your account?\n\nThis cannot be undone. (The saved default dataset, if any, is kept — you can still use "Restore Default Staff List" afterwards.)`;
   if (!(await showDangerConfirm(msg, 'Clear All Data', 'DELETE'))) return;
   // Keep defaultData across a clear — losing the protected backstop along with everything
   // else would defeat the whole point of saving one in the first place.
@@ -2626,7 +2626,7 @@ async function restoreSeedData() {
     refreshDashboard(); renderStaffTable(); renderShiftTable(); renderHolidayGrid(); loadSettingsForm();
     toast('✅ Saved default dataset restored.');
   } else {
-    if (!(await showConfirm('Restore the built-in default staff list?\n\nThis will REPLACE all current staff, shifts, and holiday data with the built-in defaults (3 shifts, all guest & technical staff). This cannot be undone.', 'Restore Default Staff List'))) return;
+    if (!(await showConfirm('Restore the built-in default staff list?\n\nThis will REPLACE all current staff, shifts, and holiday data with the built-in defaults (4 shifts, 0 staff). This cannot be undone.', 'Restore Default Staff List'))) return;
     db.staff = [];
     db.shifts = [];
     db.holidays = {};
@@ -2638,8 +2638,8 @@ async function restoreSeedData() {
 async function saveCurrentAsDefault() {
   const hasExisting = !!(db.defaultData && (db.defaultData.staff || []).length);
   const msg = hasExisting
-    ? `Overwrite the saved default dataset with the CURRENT staff, shifts, holidays and settings?\n\nThis permanently replaces the existing saved default (saved ${db.defaultData.savedAt ? new Date(db.defaultData.savedAt).toLocaleString() : 'earlier'}) for every device and instructor this link is shared with — it cannot be recovered afterwards. "Restore Default Staff List" will use this new snapshot from now on.`
-    : `Save the CURRENT staff, shifts, holidays and settings as the default dataset?\n\n"Restore Default Staff List" will use this snapshot instead of the built-in sample data from now on, for every device and instructor this link is shared with.`;
+    ? `Overwrite the saved default dataset with the CURRENT staff, shifts, holidays and settings?\n\nThis permanently replaces the existing saved default (saved ${db.defaultData.savedAt ? new Date(db.defaultData.savedAt).toLocaleString() : 'earlier'}) — it cannot be recovered afterwards. "Restore Default Staff List" will use this new snapshot from now on.`
+    : `Save the CURRENT staff, shifts, holidays and settings as the default dataset?\n\n"Restore Default Staff List" will use this snapshot instead of the built-in defaults from now on.`;
   if (!(await showDangerConfirm(msg, 'Save Current Data as Default', 'SAVE'))) return;
   db.defaultData = {
     staff: JSON.parse(JSON.stringify(db.staff)),
