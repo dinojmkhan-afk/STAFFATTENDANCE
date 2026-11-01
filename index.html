@@ -11,7 +11,7 @@
      Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
-const FIREBASE_CONFIG = {
+ const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
   authDomain:        "iti-staff-attendance.firebaseapp.com",
   projectId:         "iti-staff-attendance",
@@ -2028,10 +2028,15 @@ function renderHolidayGrid() {
     const opts = ['', 'SUNDAY', 'HOLIDAY', 'SECOND SATURDAY'];
     const cur = db.holidays[key] || '';
 
-    html += `<div style="text-align:center;">
-      <div style="font-size:10px;color:var(--fg-3);font-weight:600;">${d}</div>
-      <div style="font-size:9px;color:${isSun?'var(--accent-2)':'var(--fg-3)'};">${dayName}</div>
-      <select style="font-size:10px;padding:2px 2px;border-radius:3px;width:70px;text-align:center;" onchange="setHoliday('${key}',this.value)">
+    const isMarked = !!cur;
+    const cellBg = isMarked ? 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:3px 2px;' : 'padding:3px 2px;';
+    const numColor = isMarked ? '#dc2626' : 'var(--fg-3)';
+    const dayColor = isMarked ? '#dc2626' : (isSun ? 'var(--accent-2)' : 'var(--fg-3)');
+    const selBg = isMarked ? 'background:#fef2f2;border-color:#fca5a5;color:#dc2626;font-weight:700;' : '';
+    html += `<div style="text-align:center;${cellBg}">
+      <div style="font-size:10px;color:${numColor};font-weight:600;">${d}</div>
+      <div style="font-size:9px;color:${dayColor};">${dayName}</div>
+      <select style="font-size:10px;padding:2px 2px;border-radius:3px;width:70px;text-align:center;${selBg}" onchange="setHoliday('${key}',this.value);renderHolidayGrid();">
         ${opts.map(o => `<option value="${o}" ${cur===o?'selected':''}>${o||'(work)'}</option>`).join('')}
       </select>
     </div>`;
