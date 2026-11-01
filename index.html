@@ -753,7 +753,7 @@ tr:hover td { background: var(--accent-soft); }
                     <option value="0">January</option><option value="1">February</option><option value="2">March</option>
                     <option value="3">April</option><option value="4">May</option><option value="5">June</option>
                     <option value="6">July</option><option value="7">August</option><option value="8">September</option>
-                    <option value="9" selected>October</option><option value="10">November</option><option value="11">December</option>
+                    <option value="9">October</option><option value="10">November</option><option value="11">December</option>
                   </select>
                 </div>
                 <div class="form-group">
@@ -851,11 +851,11 @@ tr:hover td { background: var(--accent-soft); }
                 <div class="form-row">
                   <div class="form-group">
                     <label>FN Row Height (mm) — signature space</label>
-                    <input type="number" id="s-fnheight" value="6" min="4" max="14" step="0.5">
+                    <input type="number" id="s-fnheight" value="7.7" min="4" max="14" step="0.1">
                   </div>
                   <div class="form-group">
                     <label>AN Row Height (mm) — signature space</label>
-                    <input type="number" id="s-anheight" value="6" min="4" max="14" step="0.5">
+                    <input type="number" id="s-anheight" value="7.7" min="4" max="14" step="0.1">
                   </div>
                 </div>
               </div>
@@ -889,10 +889,10 @@ tr:hover td { background: var(--accent-soft); }
           <div class="card">
             <div class="card-header"><span class="card-title">Data Management</span></div>
             <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap;">
-              <button class="btn btn-secondary" onclick="exportData()">Export Data (JSON)</button>
-              <button class="btn btn-secondary" onclick="exportDataExcel()">Export Data (Excel)</button>
+              <button class="btn btn-secondary" onclick="exportData()">Download Data (JSON)</button>
+              <button class="btn btn-secondary" onclick="exportDataExcel()">Download Data (Excel)</button>
               <label class="btn btn-secondary" style="cursor:pointer;">
-                Import Data
+                Upload Data
                 <input type="file" accept=".json" hidden onchange="importData(event)">
               </label>
               <button class="btn btn-danger" onclick="clearAllData()">Clear All Data</button>
@@ -1066,8 +1066,8 @@ let db = {
     loc: 'DHANUVACHAPURAM',
     mal: 'ഹാജർ പുസ്തകം',
     sec: 'സാങ്കേതിക വിഭാഗം',
-    fnheight: 6, anheight: 6, perpage: 15,
-    showPen: false, rightOffsetMm: 0 // last-used Generate panel options, remembered across visits
+    fnheight: 7.7, anheight: 7.7, perpage: 15,
+    showPen: true, blankAfterCover: true, rightOffsetMm: 0 // last-used Generate panel options, remembered across visits
   },
   // A saved snapshot of staff/shifts/holidays that "Restore Default Staff List" and the
   // first-run auto-seed use instead of the built-in sample data, once an admin saves one
@@ -2076,8 +2076,8 @@ function loadSettingsForm() {
   document.getElementById('s-loc').value = s.loc || '';
   document.getElementById('s-mal').value = s.mal || '';
   document.getElementById('s-sec').value = s.sec || '';
-  document.getElementById('s-fnheight').value = s.fnheight || 6;
-  document.getElementById('s-anheight').value = s.anheight || 6;
+  document.getElementById('s-fnheight').value = s.fnheight || 7.7;
+  document.getElementById('s-anheight').value = s.anheight || 7.7;
   document.getElementById('s-perpage').value = s.perpage || 15;
   const nameMode = s.nameMode || 'both';
   document.querySelectorAll('input[name="s-namemode"]').forEach(r => { r.checked = r.value === nameMode; });
@@ -2812,6 +2812,16 @@ fbAuth.onAuthStateChanged(user => {
 
     refreshDashboard();
     renderStaffTable();
+
+    // Set gen-month/gen-year to next month by default
+    (function() {
+      const nm = new Date();
+      nm.setMonth(nm.getMonth() + 1);
+      const mSel = document.getElementById('gen-month');
+      const ySel = document.getElementById('gen-year');
+      if (mSel) mSel.value = nm.getMonth();
+      if (ySel) ySel.value = nm.getFullYear();
+    })();
 
     // Then connect Firestore for live sync
     initFirestoreSync(user);
