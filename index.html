@@ -728,12 +728,12 @@ tr:hover td { background: var(--accent-soft); }
                     <option value="0">January</option><option value="1">February</option><option value="2">March</option>
                     <option value="3">April</option><option value="4">May</option><option value="5">June</option>
                     <option value="6">July</option><option value="7">August</option><option value="8">September</option>
-                    <option value="9" selected>October</option><option value="10">November</option><option value="11">December</option>
+                    <option value="9">October</option><option value="10">November</option><option value="11">December</option>
                   </select>
                 </div>
                 <div class="form-group">
                   <label>Year</label>
-                  <input type="number" id="hol-year" value="2026" min="2020" max="2040">
+                  <input type="number" id="hol-year" value="" min="2020" max="2040">
                 </div>
               </div>
               <div id="holiday-grid" style="margin-top:8px;"></div>
@@ -2813,14 +2813,20 @@ fbAuth.onAuthStateChanged(user => {
     refreshDashboard();
     renderStaffTable();
 
-    // Set gen-month/gen-year to next month by default
+    // Set gen-month/gen-year and hol-month/hol-year to next month by default
     (function() {
       const nm = new Date();
       nm.setMonth(nm.getMonth() + 1);
+      const nextM = nm.getMonth();
+      const nextY = nm.getFullYear();
       const mSel = document.getElementById('gen-month');
       const ySel = document.getElementById('gen-year');
-      if (mSel) mSel.value = nm.getMonth();
-      if (ySel) ySel.value = nm.getFullYear();
+      if (mSel) mSel.value = nextM;
+      if (ySel) ySel.value = nextY;
+      const hSel = document.getElementById('hol-month');
+      const hYSel = document.getElementById('hol-year');
+      if (hSel) hSel.value = nextM;
+      if (hYSel) hYSel.value = nextY;
     })();
 
     // Then connect Firestore for live sync
