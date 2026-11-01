@@ -11,7 +11,7 @@
      Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
-  const FIREBASE_CONFIG = {
+const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
   authDomain:        "iti-staff-attendance.firebaseapp.com",
   projectId:         "iti-staff-attendance",
@@ -2656,142 +2656,16 @@ function renderSyncDebugInfo() {
 // ===== SEED DATA =====
 function seedDefaultData() {
   db.version = DATA_VERSION;
-  // === SHIFTS ===
+  // === DEFAULT SHIFTS (no staff — each institution adds their own) ===
   db.shifts = [
-    {id:1, name:'SHIFT – I (Guest)', category:'Guest Instructor', malCat:'ഗസ്റ്റ് ഇൻസ്ട്രക്ടർ'},
-    {id:2, name:'SHIFT – I', category:'Technical Staff', malCat:'സാങ്കേതിക വിഭാഗം ജീവനക്കാർ'},
-    {id:3, name:'SHIFT – II', category:'Technical Staff', malCat:'സാങ്കേതിക വിഭാഗം ജീവനക്കാർ'}
+    {id:1, name:'SHIFT – I (Guest)',  category:'Guest Instructor', malCat:'ഗസ്റ്റ് ഇൻസ്ട്രക്ടർ'},
+    {id:2, name:'SHIFT – I',          category:'Technical Staff',  malCat:'സാങ്കേതിക വിഭാഗം ജീവനക്കാർ'},
+    {id:3, name:'SHIFT – II',         category:'Technical Staff',  malCat:'സാങ്കേതിക വിഭാഗം ജീവനക്കാർ'},
+    {id:4, name:'SHIFT – II (Guest)', category:'Guest Instructor', malCat:'ഗസ്റ്റ് ഇൻസ്ട്രക്ടർ'},
   ];
-
-  // === SHIFT I – GUEST INSTRUCTORS ===
-  const guestStaff = [
-    {nameMal:'ലിജി ആർ രാജ്', nameEng:'Liji R Raj', trade:'MCEA', type:'guest'},
-    {nameMal:'അമൽ എസ് ആർ', nameEng:'Amal S R', trade:'TDM', type:'guest'},
-    {nameMal:'ആശിർ', nameEng:'Aashir', trade:'FR', type:'guest'},
-    {nameMal:'ജീന ഇഗ്‌നേഷ്യസ്', nameEng:'Jeena Ignatius', trade:'WM', type:'guest'}
-  ];
-
-  // === SHIFT I – TECHNICAL STAFF ===
-  const shift1Staff = [
-    // Group Instructors
-    {nameMal:'ശ്രീ. ഹാഷിം. എ', nameEng:'Sri. Hashim A', trade:'', type:'regular', pen:'370382', desig:'GI(HG)', grp:'ഗ്രൂപ്പ് ഇൻസ്ട്രക്ടർ (ഹ.ഗ്രേ)'},
-    {nameMal:'ശ്രീ. അജി. വി.വി', nameEng:'Sri. Aji V V', trade:'', type:'regular', pen:'370380', desig:'GI', grp:'ഗ്രൂപ്പ് ഇൻസ്ട്രക്ടർ'},
-    // Senior Instructors
-    {nameMal:'ശ്രീമതി. അശ്വതി ദേവി. ജി', nameEng:'Smt. Aswathi Devi G', trade:'COPA', type:'regular', pen:'369713', desig:'SI'},
-    {nameMal:'ശ്രീമതി. ലിജി യു ആർ', nameEng:'Smt. Liji U R', trade:'EL', type:'regular', pen:'834762', desig:'SI'},
-    {nameMal:'ശ്രീ. സനിൽ. എം.ആർ', nameEng:'Sri. Sanil M R', trade:'EM', type:'regular', pen:'370036', desig:'SI'},
-    {nameMal:'ശ്രീ. വിനോദ് കുമാർ. എസ്', nameEng:'Sri. Vinod Kumar S', trade:'FR', type:'regular', pen:'370407', desig:'SI'},
-    {nameMal:'ശ്രീ. മോഹൻരാജ്. വി', nameEng:'Sri. Mohanraj V', trade:'MC', type:'regular', pen:'726854', desig:'SI'},
-    {nameMal:'ശ്രീ. സുജിത് കുമാർ. എസ്. കെ', nameEng:'Sri. Sujith Kumar S K', trade:'WWT', type:'regular', pen:'785442', desig:'SI'},
-    {nameMal:'ശ്രീമതി. സന്ധ്യ മോഹൻ. കെ', nameEng:'Smt. Sandhya Mohan K', trade:'PL', type:'regular', pen:'756477', desig:'SI'},
-    {nameMal:'ശ്രീ. രഞ്ജിത്. ആർ.എസ്', nameEng:'Sri. Ranjith R S', trade:'TR', type:'regular', pen:'117268', desig:'SI'},
-    {nameMal:'ശ്രീ. എൻ. ജയചന്ദ്രൻ', nameEng:'Sri. N Jayachandran', trade:'WL', type:'regular', pen:'341041', desig:'SI'},
-    {nameMal:'ശ്രീ. വിനീത്. റ്റി.എൽ', nameEng:'Sri. Vineeth T L', trade:'WL', type:'regular', pen:'752335', desig:'SI'},
-    {nameMal:'ശ്രീ. പോൾ രാജ്. ഡി', nameEng:'Sri. Paul Raj D', trade:'WL', type:'regular', pen:'762552', desig:'SI'},
-    {nameMal:'ശ്രീ. ശ്രീകുമാർ. ബി.എസ്', nameEng:'Sri. Sreekumar B S', trade:'WM', type:'regular', pen:'370498', desig:'SI'},
-    // Junior Instructors
-    {nameMal:'ശ്രീമതി. പ്രഭാത സുഷമ. കെ.പി', nameEng:'Smt. Prabhatha Sushama K P', trade:'CHNM', type:'regular', pen:'916731', desig:'JI'},
-    {nameMal:'ശ്രീ. ഹരീന്ദ്ര കുമാർ. ആർ', nameEng:'Sri. Hareendra Kumar R', trade:'DC', type:'regular', pen:'689587', desig:'JI'},
-    {nameMal:'ശ്രീ. ശ്യാംലാൽ. പി.എസ്', nameEng:'Sri. Shyamlal P S', trade:'DM', type:'regular', pen:'1020007', desig:'JI'},
-    {nameMal:'ശ്രീ. അനീഷ്. ജി.റ്റി', nameEng:'Sri. Aneesh G T', trade:'EL', type:'regular', pen:'940105', desig:'JI'},
-    {nameMal:'ശ്രീ. സുശീൽരാജ്. ആർ.എസ്', nameEng:'Sri. Sushilraj R S', trade:'FR', type:'regular', pen:'807765', desig:'JI'},
-    {nameMal:'ശ്രീ. അരുൺ. എസ്.വി', nameEng:'Sri. Arun S V', trade:'FR', type:'regular', pen:'907554', desig:'JI'},
-    {nameMal:'ശ്രീ. അമൽ. എ.എസ്', nameEng:'Sri. Amal A S', trade:'MC', type:'regular', pen:'931206', desig:'JI'},
-    {nameMal:'ശ്രീ. ലാൽ. ആർ', nameEng:'Sri. Lal R', trade:'MC', type:'regular', pen:'917572', desig:'JI'},
-    {nameMal:'ശ്രീ. ആരിഷ്. എ.എം', nameEng:'Sri. Aarish A M', trade:'MCEA', type:'regular', pen:'1037305', desig:'JI'},
-    {nameMal:'ശ്രീ. ദിപിൻ. റ്റി.എൽ', nameEng:'Sri. Dipin T L', trade:'MD', type:'regular', pen:'912593', desig:'JI'},
-    {nameMal:'ശ്രീ. അനൂപ് നന്ദൻ', nameEng:'Sri. Anoop Nandan', trade:'WL', type:'regular', pen:'948166', desig:'JI'},
-    {nameMal:'ശ്രീ. മഹേഷ്. എം.റ്റി', nameEng:'Sri. Mahesh M T', trade:'OAMT', type:'regular', pen:'925585', desig:'JI'},
-    {nameMal:'ശ്രീ. അനീഷ്. ആർ', nameEng:'Sri. Aneesh R', trade:'RACT', type:'regular', pen:'856398', desig:'JI'},
-    {nameMal:'ശ്രീ. ബിബിൻ രാജ്. വി.സി', nameEng:'Sri. Bibin Raj V C', trade:'SMW', type:'regular', pen:'935941', desig:'JI'},
-    {nameMal:'ശ്രീ. പ്രഭഞ്ജൻ. ആർ. എസ്', nameEng:'Sri. Prabhanjan R S', trade:'SMW', type:'regular', pen:'936067', desig:'JI'},
-    {nameMal:'ശ്രീമതി. അരുന്ധതി ആർ നായർ', nameEng:'Smt. Arundhathi R Nair', trade:'SR', type:'regular', pen:'1025816', desig:'JI'},
-    {nameMal:'ശ്രീ. അജു ജോസ്', nameEng:'Sri. Aju Jose', trade:'TR', type:'regular', pen:'851068', desig:'JI'},
-    {nameMal:'ശ്രീ. സനൽകുമാർ ആർ പി', nameEng:'Sri. Sanalkumar R P', trade:'WL (GG)', type:'regular', pen:'730255', desig:'JI'},
-    {nameMal:'ശ്രീ. അരുൺ എസ്', nameEng:'Sri. Arun S', trade:'WM', type:'regular', pen:'826102', desig:'JI'},
-    // Workshop Attenders
-    {nameMal:'ശ്രീമതി. സചിത്ര. പി .എസ്', nameEng:'Smt. Sachithra P S', trade:'COPA', type:'regular', pen:'905554', desig:'WA', grp:'വർക്ക്‌ഷോപ്പ് അറ്റൻഡർ'},
-    {nameMal:'ശ്രീ. മഹേഷ്. എം.എസ്', nameEng:'Sri. Mahesh M S', trade:'FR', type:'regular', pen:'853355', desig:'WA'},
-    {nameMal:'ശ്രീമതി. ശാന്ത. സി', nameEng:'Smt. Shantha C', trade:'WL', type:'regular', pen:'774987', desig:'WA'},
-    // Sweepers
-    {nameMal:'ശ്രീമതി. ശ്രീദേവി. ഒ', nameEng:'Smt. Sreedevi O', trade:'', type:'regular', pen:'1016065', desig:'SWP', grp:'സ്വീപ്പർ'},
-    {nameMal:'ശ്രീമതി. വിജില കുമാരി. വി', nameEng:'Smt. Vijila Kumari V', trade:'', type:'regular', pen:'1024778', desig:'SWP'},
-    {nameMal:'ശ്രീമതി. ലീനാ കുമാരി. എസ്', nameEng:'Smt. Leena Kumari S', trade:'', type:'regular', pen:'803594', desig:'SWP'},
-    {nameMal:'ശ്രീമതി. വിജി പി എസ്', nameEng:'Smt. Viji P S', trade:'', type:'regular', pen:'1016139', desig:'SWP'}
-  ];
-
-  // === SHIFT II – TECHNICAL STAFF ===
-  const shift2Staff = [
-    // Group Instructors
-    {nameMal:'ശ്രീ. റെജിമോൻ. ഡി. എം', nameEng:'Sri. Rejimon D M', trade:'', type:'regular', pen:'370684', desig:'GI', grp:'ഗ്രൂപ്പ് ഇൻസ്ട്രക്ടർ'},
-    {nameMal:'ശ്രീ. ഹരിലാൽ. എസ്', nameEng:'Sri. Harilal S', trade:'', type:'regular', pen:'370379', desig:'GI'},
-    {nameMal:'ശ്രീ.വിപിൻകുമാർ. പി.എസ്', nameEng:'Sri. Vipinkumar P S', trade:'', type:'regular', pen:'636640', desig:'GI'},
-    // Senior Instructors
-    {nameMal:'ശ്രീ. സുനിൽ കുമാർ. ഡി', nameEng:'Sri. Sunil Kumar D', trade:'ACD', type:'regular', pen:'308860', desig:'SI'},
-    {nameMal:'ശ്രീ. അരുൺ കുമാർ. ബി.എസ്', nameEng:'Sri. Arun Kumar B S', trade:'ACD', type:'regular', pen:'341036', desig:'SI'},
-    {nameMal:'ശ്രീമതി. ശ്രീപ്രഭ. പി.എസ്', nameEng:'Smt. Sreeprabha P S', trade:'ACD', type:'regular', pen:'619215', desig:'SI'},
-    {nameMal:'ശ്രീ. മനോജ്. ടി.എസ്', nameEng:'Sri. Manoj T S', trade:'ACD', type:'regular', pen:'746356', desig:'SI'},
-    {nameMal:'ശ്രീമതി. മീനാംബിക. പി.എ', nameEng:'Smt. Meenambika P A', trade:'ACD', type:'regular', pen:'758630', desig:'SI'},
-    {nameMal:'ശ്രീമതി. സജി. എസ്.എസ്', nameEng:'Smt. Saji S S', trade:'ACD', type:'regular', pen:'815266', desig:'SI'},
-    {nameMal:'ശ്രീമതി. ഹെലൻ. എസ്', nameEng:'Smt. Helen S', trade:'ACD', type:'regular', pen:'818883', desig:'SI'},
-    {nameMal:'ശ്രീ. ദിനോജ് എം ഖാൻ', nameEng:'Sri. Dinoj M Khan', trade:'COPA', type:'regular', pen:'815231', desig:'SI'},
-    {nameMal:'ശ്രീമതി. റാണി. ബി.ആർ.', nameEng:'Smt. Rani B R', trade:'DC', type:'regular', pen:'754226', desig:'SI'},
-    {nameMal:'ശ്രീമതി. ഷിജി. ജെ.എസ്', nameEng:'Smt. Shiji J S', trade:'EL', type:'regular', pen:'885445', desig:'SI'},
-    {nameMal:'ശ്രീ. അനിൽ കുമാർ. എ', nameEng:'Sri. Anil Kumar A', trade:'FR', type:'regular', pen:'369939', desig:'SI'},
-    {nameMal:'ശ്രീ. ബിനു. എ.എസ്', nameEng:'Sri. Binu A S', trade:'PL', type:'regular', pen:'405945', desig:'SI'},
-    {nameMal:'ശ്രീമതി. റാണി. ജി.എസ്', nameEng:'Smt. Rani G S', trade:'SMW', type:'regular', pen:'751841', desig:'SI'},
-    {nameMal:'ശ്രീ. വിനോജ്. ആർ.എസ്', nameEng:'Sri. Vinoj R S', trade:'SMW', type:'regular', pen:'730307', desig:'SI'},
-    {nameMal:'ശ്രീമതി. ഷീബ. എസ്.കെ.', nameEng:'Smt. Sheeba S K', trade:'SR', type:'regular', pen:'746299', desig:'SI'},
-    {nameMal:'ശ്രീ. അഭി ഭദ്രൻ', nameEng:'Sri. Abhi Bhadran', trade:'TDM', type:'regular', pen:'806584', desig:'SI'},
-    {nameMal:'ശ്രീ. സേതുമോൻ. എൻ.സി', nameEng:'Sri. Sethumon N C', trade:'WL', type:'regular', pen:'370596', desig:'SI'},
-    {nameMal:'ശ്രീ. രാജേഷ്‌കുമാർ. ജി', nameEng:'Sri. Rajeshkumar G', trade:'WL', type:'regular', pen:'745400', desig:'SI'},
-    {nameMal:'ശ്രീ. അജി. കെ', nameEng:'Sri. Aji K', trade:'WM', type:'regular', pen:'367492', desig:'SI'},
-    // Junior Instructors
-    {nameMal:'ശ്രീ. ഷൈൻ. എം.റ്റി', nameEng:'Sri. Shine M T', trade:'CHNM', type:'regular', pen:'768841', desig:'JI'},
-    {nameMal:'ശ്രീ. മനോജ്. എം.എസ്', nameEng:'Sri. Manoj M S', trade:'EL', type:'regular', pen:'937712', desig:'JI'},
-    {nameMal:'ശ്രീ. സന്ദീപ്കുമാർ.ജി', nameEng:'Sri. Sandeepkumar G', trade:'WL GG', type:'regular', pen:'761622', desig:'JI'},
-    {nameMal:'ശ്രീ. മഹേഷ് മോഹൻ. എം', nameEng:'Sri. Mahesh Mohan M', trade:'FR', type:'regular', pen:'926720', desig:'JI'},
-    {nameMal:'ശ്രീ. രാജീവ്‌ലാൽ. ആർ', nameEng:'Sri. Rajeevalal R', trade:'FR', type:'regular', pen:'975167', desig:'JI'},
-    {nameMal:'ശ്രീ. ശരത് എസ് നായർ', nameEng:'Sri. Sharath S Nair', trade:'FR', type:'regular', pen:'1038012', desig:'JI'},
-    {nameMal:'ശ്രീ. ബൈജു കുമാർ. ജി', nameEng:'Sri. Baiju Kumar G', trade:'MC', type:'regular', pen:'753365', desig:'JI'},
-    {nameMal:'ശ്രീ. രതീഷ് കുമാർ. ജെ.എൽ', nameEng:'Sri. Ratheesh Kumar J L', trade:'MC', type:'regular', pen:'930218', desig:'JI'},
-    {nameMal:'ശ്രീ. മിഥുൻ. എം. എം', nameEng:'Sri. Mithun M M', trade:'MC', type:'regular', pen:'943269', desig:'JI'},
-    {nameMal:'ശ്രീ. വർഗീസ് ജി', nameEng:'Sri. Varghese G', trade:'MCEA', type:'regular', pen:'1026460', desig:'JI'},
-    {nameMal:'ശ്രീ. വിപിൻസാജ്. വി.എസ്', nameEng:'Sri. Vipinsaj V S', trade:'MCEA', type:'regular', pen:'910877', desig:'JI'},
-    {nameMal:'ശ്രീ. അശ്വിൻ ബി. വസന്ത്', nameEng:'Sri. Ashwin B Vasanth', trade:'MD', type:'regular', pen:'909460', desig:'JI'},
-    {nameMal:'ശ്രീ. ജിതിൻ. കെ', nameEng:'Sri. Jithin K', trade:'OAMT', type:'regular', pen:'917833', desig:'JI'},
-    {nameMal:'ശ്രീ. ഷാജി ഡി', nameEng:'Sri. Shaji D', trade:'RACT', type:'regular', pen:'740295', desig:'JI'},
-    {nameMal:'ശ്രീ. ശ്യാം ആർ നാഥ്', nameEng:'Sri. Shyam R Nath', trade:'TR', type:'regular', pen:'985063', desig:'JI'},
-    {nameMal:'ശ്രീ. ശരത് എസ് എസ്', nameEng:'Sri. Sharath S S', trade:'TR', type:'regular', pen:'901232', desig:'JI'},
-    // Workshop Attenders
-    {nameMal:'ശ്രീമതി. ശാരി എസ് കുമാർ', nameEng:'Smt. Shari S Kumar', trade:'EL', type:'regular', desig:'WA', grp:'വർക്ക്‌ഷോപ്പ് അറ്റൻഡർ'},
-    {nameMal:'ശ്രീ. രാഹുൽ എ', nameEng:'Sri. Rahul A', trade:'EMECH', type:'regular', desig:'WA'},
-    // Dresser
-    {nameMal:'ശ്രീ. ഹരികുമാർ', nameEng:'Sri. Harikumar', trade:'', type:'regular', desig:'DRSR', grp:'ഡ്രസ്സർ'}
-  ];
-
-  let sid = 1;
-  guestStaff.forEach(s => db.staff.push({id:sid++, shiftId:1, cl:0, ...s}));
-  shift1Staff.forEach(s => db.staff.push({id:sid++, shiftId:2, cl:0, ...s}));
-  shift2Staff.forEach(s => db.staff.push({id:sid++, shiftId:3, cl:0, ...s}));
-
-  nextShiftId = 4;
-  nextStaffId = sid;
-
-  // Auto-mark October 2026 holidays
-  const m = 9; const y = 2026;
-  const dim = new Date(y, m+1, 0).getDate();
-  let satC = 0;
-  for (let d = 1; d <= dim; d++) {
-    const key = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dow = new Date(y, m, d).getDay();
-    if (dow === 0) db.holidays[key] = 'SUNDAY';
-    else if (dow === 6) { satC++; if (satC === 2) db.holidays[key] = 'SECOND SATURDAY'; }
-  }
-  // Known public holidays in October 2026 (Kerala)
-  db.holidays['2026-10-02'] = 'HOLIDAY'; // Gandhi Jayanti
-  db.holidays['2026-10-20'] = 'HOLIDAY'; // Milad-un-Nabi (approx)
-  db.holidays['2026-10-21'] = 'HOLIDAY'; // Milad-un-Nabi (approx)
+  nextShiftId = 5;
+  db.staff = [];
+  nextStaffId = 1;
 
   saveData();
   refreshDashboard();
