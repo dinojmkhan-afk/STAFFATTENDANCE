@@ -11,7 +11,7 @@
      Get them from: Firebase Console → Project Settings → Your apps → Web app → SDK setup
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
-const FIREBASE_CONFIG = {
+ const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyD5ZJrAEK8WO9fEPhb_Jk8fU9WOQ_8NFl0",
   authDomain:        "iti-staff-attendance.firebaseapp.com",
   projectId:         "iti-staff-attendance",
@@ -982,7 +982,7 @@ tr:hover td { background: var(--accent-soft); }
         </div>
         <div class="form-group">
           <label>Casual Leave Availed</label>
-          <input type="number" id="staff-cl" value="0" min="0" max="30">
+          <input type="number" id="staff-cl" placeholder="0" min="0" max="30">
         </div>
       </div>
     </div>
@@ -1617,7 +1617,7 @@ function openStaffModal(id) {
       document.getElementById('staff-trade').value = s.trade || '';
       document.getElementById('staff-shift-select').value = s.shiftId || '';
       document.getElementById('staff-type').value = s.type || 'regular';
-      document.getElementById('staff-cl').value = s.cl || 0;
+      document.getElementById('staff-cl').value = s.cl || '';
       document.getElementById('staff-desig').value = s.desig || '';
       document.getElementById('staff-pen').value = s.pen || '';
     }
@@ -1625,7 +1625,7 @@ function openStaffModal(id) {
     document.getElementById('staff-name-mal').value = '';
     document.getElementById('staff-name-eng').value = '';
     document.getElementById('staff-trade').value = '';
-    document.getElementById('staff-cl').value = 0;
+    document.getElementById('staff-cl').value = '';
     document.getElementById('staff-type').value = 'regular';
     document.getElementById('staff-desig').value = '';
     document.getElementById('staff-pen').value = '';
